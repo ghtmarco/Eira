@@ -261,20 +261,22 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({ userInput, setUserInp
             value={userInput}
             editable={!isDisabled}
             style={{
-              borderWidth: 1.2,
-              borderColor: isDisabled ? 'rgba(0,0,0,0.06)' : 'rgba(0,0,0,0.12)',
+              borderWidth: 1.5,
+              borderColor: isDisabled ? 'rgba(0,0,0,0.08)' : 'rgba(0,0,0,0.15)',
               borderRadius: 25,
               paddingVertical: Platform.OS === "ios" ? 14 : 12,
               paddingHorizontal: 18,
               color: isDisabled ? THEME.textSecondary : THEME.text,
-              backgroundColor: isDisabled ? 'rgba(242,242,247,0.8)' : THEME.card,
+              backgroundColor: isDisabled ? 'rgba(242,242,247,0.9)' : THEME.card,
               fontSize: 16,
               fontWeight: '400',
               letterSpacing: -0.2,
               shadowColor: THEME.shadow.color,
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: isDisabled ? 0.02 : 0.04,
-              shadowRadius: 3,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: isDisabled ? 0.03 : 0.06,
+              shadowRadius: 4,
+              elevation: 2, // For Android shadow
+              minHeight: 50, // Ensure consistent height
             }}
             placeholderTextColor={THEME.placeholder}
             numberOfLines={1}

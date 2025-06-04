@@ -1,16 +1,13 @@
-import React, { useState, useCallback, useRef, JSX } from 'react'
+import React, { useState, useCallback, JSX } from 'react'
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, ListRenderItem, Alert, StyleSheet } from 'react-native'
 import axios, { AxiosError } from 'axios'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useFocusEffect, useNavigation, NavigationProp } from '@react-navigation/native'
-import Animated, { FadeInDown, SlideInLeft, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
-import { Swipeable } from 'react-native-gesture-handler'
+import Animated, { FadeInDown } from 'react-native-reanimated'
 import Constants from 'expo-constants'
 import Svg, { Path } from "react-native-svg"
 import { LinearGradient } from 'expo-linear-gradient'
 import Toast from 'react-native-toast-message'
-import { GestureHandlerRootView } from 'react-native-gesture-handler'
-import * as Haptics from 'expo-haptics'
 
 const SERVER_URL: string = (Constants.expoConfig?.extra?.SERVER_URL as string) || '';
 const PAGE_URL: string = `${SERVER_URL}/users/chats/user`;
@@ -153,18 +150,6 @@ const HistoryScreen = (): JSX.Element => {
     */
   };
 
-  // Array of refs for all swipeable items
-  const swipeableRefs = useRef<Map<string, Swipeable | null>>(new Map());
-  
-  // Function to close all open swipeables except the current one
-  const closeOtherSwipeables = (currentId: string) => {
-    swipeableRefs.current.forEach((ref, id) => {
-      if (id !== currentId && ref) {
-        ref.close();
-      }
-    });
-  };
-
   const renderChat: ListRenderItem<ChatHistoryItem> = ({ item, index }) => {
     // Get the first user message as the title, or use the first available message
     const firstUserMessage = item.messages.find(msg => msg.sender === "user");
@@ -193,141 +178,87 @@ const HistoryScreen = (): JSX.Element => {
     // Get message count
     const messageCount = item.messages.length;
     
-    // Save ref to the swipeable component
-    const setSwipeableRef = (ref: Swipeable | null) => {
-      if (ref) {
-        swipeableRefs.current.set(item._id, ref);
-      }
-    };
-    
-    const renderRightActions = () => {
-      return (
-        <TouchableOpacity
-          style={styles.deleteAction}
-          onPress={() => {
-            swipeableRefs.current.get(item._id)?.close();
-            handleDeleteChat(item._id);
-          }}
-          disabled={deleting[item._id]}
-        >
-          {deleting[item._id] ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <>
-              <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-                <Path
-                  d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"
-                  stroke="#FFFFFF"
-                  strokeWidth={1.5}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </Svg>
-              <Text style={styles.deleteActionText}>Delete</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      );
-    }
     return (
       <Animated.View
         entering={FadeInDown.duration(400).delay(index * 100).springify()}
       >
-        <Swipeable
-          ref={setSwipeableRef}
-          renderRightActions={renderRightActions}
-          friction={2}
-          rightThreshold={40}
-          onSwipeableOpen={() => {
-            // Close other swipeables when opening this one
-            closeOtherSwipeables(item._id);
-            // Add haptic feedback when swipe is completed
-            try {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            } catch (error) {
-              console.log('Haptics not available', error);
-            }
-          }}
-        >
-          <View style={styles.chatCard}>
-            <View style={styles.chatHeader}>
-              <Text style={styles.chatTitle} numberOfLines={1}>
-                {title}
-              </Text>
-              
-              <TouchableOpacity 
-                style={styles.deleteButton}
-                onPress={() => handleDeleteChat(item._id)}
-                disabled={deleting[item._id]}
-              >
-                {deleting[item._id] ? (
-                  <ActivityIndicator size="small" color={THEME.secondary} />
-                ) : (
-                  <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-                    <Path
-                      d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"
-                      stroke={THEME.secondary}
-                      strokeWidth={1.5}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <Path
-                      d="M10 11v6M14 11v6"
-                      stroke={THEME.secondary}
-                      strokeWidth={1.5}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </Svg>
-                )}
-              </TouchableOpacity>
-            </View>
+        <View style={styles.chatCard}>
+          <View style={styles.chatHeader}>
+            <Text style={styles.chatTitle} numberOfLines={1}>
+              {title}
+            </Text>
             
-            <View style={styles.chatInfo}>
-              <Text style={styles.messageCount}>
-                {messageCount} {messageCount === 1 ? 'message' : 'messages'}
-              </Text>
-              <Text style={styles.messageDate}>{dateDisplay}</Text>
-            </View>
-            
-            <TouchableOpacity
-              style={styles.continueButton}
-              onPress={() => navigation.navigate('Chat', { chatId: item._id.toString() })}
-              activeOpacity={0.7}
+            <TouchableOpacity 
+              style={styles.deleteButton}
+              onPress={() => handleDeleteChat(item._id)}
+              disabled={deleting[item._id]}
             >
-              <LinearGradient
-                colors={['#007AFF', '#0A84FF']}
-                style={styles.continueButtonGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <Text style={styles.continueButtonText}>Continue</Text>
-                <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+              {deleting[item._id] ? (
+                <ActivityIndicator size="small" color={THEME.secondary} />
+              ) : (
+                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
                   <Path
-                    d="M5 12h14M13 5l7 7-7 7"
-                    stroke="#FFFFFF"
-                    strokeWidth={2}
+                    d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"
+                    stroke={THEME.secondary}
+                    strokeWidth={1.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <Path
+                    d="M10 11v6M14 11v6"
+                    stroke={THEME.secondary}
+                    strokeWidth={1.5}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
                 </Svg>
-              </LinearGradient>
+              )}
             </TouchableOpacity>
           </View>
-        </Swipeable>
+          
+          <View style={styles.chatInfo}>
+            <Text style={styles.messageCount}>
+              {messageCount} {messageCount === 1 ? 'message' : 'messages'}
+            </Text>
+            <Text style={styles.messageDate}>{dateDisplay}</Text>
+          </View>
+          
+          <TouchableOpacity
+            style={styles.continueButton}
+            onPress={() => navigation.navigate('Chat', { chatId: item._id.toString() })}
+            activeOpacity={0.7}
+          >
+            <LinearGradient
+              colors={['#007AFF', '#0A84FF']}
+              style={styles.continueButtonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Text style={styles.continueButtonText}>Continue</Text>
+              <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                <Path
+                  d="M5 12h14M13 5l7 7-7 7"
+                  stroke="#FFFFFF"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </Svg>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       </Animated.View>
     );
   }
 
   return (
-    <GestureHandlerRootView style={{flex: 1}}>
-      <View style={styles.container}>
-        <LinearGradient
-          colors={['#F8F8F8', '#F4F6F8', '#F7F7F7']}
-          style={styles.gradientBackground}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
+    <View style={styles.container}>
+      <LinearGradient
+        colors={['#F8F8F8', '#F4F6F8', '#F7F7F7']}
+        style={styles.gradientBackground}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator
@@ -377,7 +308,6 @@ const HistoryScreen = (): JSX.Element => {
           )}
         </LinearGradient>
       </View>
-    </GestureHandlerRootView>
   );
 }
 
@@ -491,23 +421,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
   },
-  // Swipe to delete styles
-  deleteAction: {
-    backgroundColor: THEME.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 100,
-    height: '100%',
-    borderTopRightRadius: 14,
-    borderBottomRightRadius: 14,
-    flexDirection: 'column',
-  },
-  deleteActionText: {
-    color: '#FFFFFF',
-    fontWeight: '500',
-    fontSize: 13,
-    marginTop: 4,
-  }
 });
 
 export default HistoryScreen;

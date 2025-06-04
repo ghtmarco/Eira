@@ -15,12 +15,13 @@ import Svg, { Path } from "react-native-svg";
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import Toast from 'react-native-toast-message';
 
 const PHONE_NUMBER: string = (Constants.expoConfig?.extra?.PHONE_NUMBER as string) || '';
 const APP_VERSION = '1.0.0';
 
-// Theme colors - iOS inspired
-const THEME = {
+// Modern dark mode color scheme inspired by 21dev
+const LIGHT_THEME = {
   primary: '#007AFF',
   secondary: '#FF3B30',
   tertiary: '#34C759',
@@ -36,6 +37,22 @@ const THEME = {
   }
 };
 
+const DARK_THEME = {
+  primary: '#0A84FF',
+  secondary: '#FF453A',
+  tertiary: '#30D158',
+  background: '#171717', // Deep dark background
+  card: '#262626', // Card background
+  text: '#FFFFFF',
+  textSecondary: '#A3A3A3',
+  placeholder: '#525252',
+  border: '#404040',
+  shadow: {
+    color: '#000000',
+    opacity: 0.4,
+  }
+};
+
 interface SettingsItemProps {
   icon: JSX.Element;
   title: string;
@@ -43,6 +60,7 @@ interface SettingsItemProps {
   onPress?: () => void;
   rightElement?: JSX.Element;
   showArrow?: boolean;
+  theme: typeof LIGHT_THEME;
 }
 
 const SettingsItem: React.FC<SettingsItemProps> = ({ 
@@ -51,17 +69,18 @@ const SettingsItem: React.FC<SettingsItemProps> = ({
   subtitle, 
   onPress, 
   rightElement, 
-  showArrow = true 
+  showArrow = true,
+  theme
 }) => (
   <TouchableOpacity
     style={{
-      backgroundColor: THEME.card,
+      backgroundColor: theme.card,
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: 16,
       paddingVertical: 14,
       borderBottomWidth: 0.5,
-      borderBottomColor: THEME.border,
+      borderBottomColor: theme.border,
     }}
     onPress={onPress}
     activeOpacity={0.7}
@@ -71,7 +90,7 @@ const SettingsItem: React.FC<SettingsItemProps> = ({
       width: 32,
       height: 32,
       borderRadius: 8,
-      backgroundColor: `${THEME.primary}15`,
+      backgroundColor: `${theme.primary}15`,
       justifyContent: 'center',
       alignItems: 'center',
       marginRight: 12,
@@ -83,7 +102,7 @@ const SettingsItem: React.FC<SettingsItemProps> = ({
       <Text style={{
         fontSize: 16,
         fontWeight: '500',
-        color: THEME.text,
+        color: theme.text,
         marginBottom: subtitle ? 2 : 0,
       }}>
         {title}
@@ -91,7 +110,7 @@ const SettingsItem: React.FC<SettingsItemProps> = ({
       {subtitle && (
         <Text style={{
           fontSize: 13,
-          color: THEME.textSecondary,
+          color: theme.textSecondary,
         }}>
           {subtitle}
         </Text>
@@ -102,7 +121,7 @@ const SettingsItem: React.FC<SettingsItemProps> = ({
       <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
         <Path
           d="M9 18l6-6-6-6"
-          stroke={THEME.textSecondary}
+          stroke={theme.textSecondary}
           strokeWidth={2}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -115,14 +134,15 @@ const SettingsItem: React.FC<SettingsItemProps> = ({
 interface SettingsSectionProps {
   title: string;
   children: React.ReactNode;
+  theme: typeof LIGHT_THEME;
 }
 
-const SettingsSection: React.FC<SettingsSectionProps> = ({ title, children }) => (
+const SettingsSection: React.FC<SettingsSectionProps> = ({ title, children, theme }) => (
   <View style={{ marginBottom: 32 }}>
     <Text style={{
       fontSize: 13,
       fontWeight: '500',
-      color: THEME.textSecondary,
+      color: theme.textSecondary,
       marginLeft: 16,
       marginBottom: 8,
       textTransform: 'uppercase',
@@ -131,10 +151,10 @@ const SettingsSection: React.FC<SettingsSectionProps> = ({ title, children }) =>
       {title}
     </Text>
     <View style={{
-      backgroundColor: THEME.card,
+      backgroundColor: theme.card,
       borderRadius: 12,
       marginHorizontal: 16,
-      shadowColor: THEME.shadow.color,
+      shadowColor: theme.shadow.color,
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.05,
       shadowRadius: 3,
@@ -148,6 +168,9 @@ const SettingsSection: React.FC<SettingsSectionProps> = ({ title, children }) =>
 
 const SettingsScreen = (): JSX.Element => {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  
+  // Select theme based on isDarkMode state
+  const theme = isDarkMode ? DARK_THEME : LIGHT_THEME;
 
   useEffect(() => {
     loadThemePreference();
@@ -163,20 +186,27 @@ const SettingsScreen = (): JSX.Element => {
       console.error('Error loading theme preference:', error);
     }
   };
-
   const toggleDarkMode = async (value: boolean) => {
     try {
       setIsDarkMode(value);
       await AsyncStorage.setItem('isDarkMode', JSON.stringify(value));
       
-      // Show alert since we don't have full dark mode implementation yet
-      Alert.alert(
-        'Theme Setting Saved',
-        'Dark mode preference has been saved. Full dark mode implementation coming soon!',
-        [{ text: 'OK' }]
-      );
+      Toast.show({
+        type: 'success',
+        text1: 'Theme Updated',
+        text2: `Switched to ${value ? 'dark' : 'light'} mode successfully!`,
+        position: 'bottom',
+        visibilityTime: 2000,
+      });
     } catch (error) {
       console.error('Error saving theme preference:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Theme Change Failed',
+        text2: 'Could not save theme preference. Please try again.',
+        position: 'bottom',
+        visibilityTime: 3000,
+      });
     }
   };
 
@@ -222,12 +252,14 @@ const SettingsScreen = (): JSX.Element => {
       [{ text: 'OK' }]
     );
   };
-
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      <StatusBar barStyle="dark-content" backgroundColor={THEME.card} />
+      <StatusBar 
+        barStyle={isDarkMode ? "light-content" : "dark-content"} 
+        backgroundColor={theme.card} 
+      />
       <LinearGradient
-        colors={['#F8F8F8', '#F4F6F8', '#F7F7F7']}
+        colors={isDarkMode ? [theme.background, theme.background, theme.background] : ['#F8F8F8', '#F4F6F8', '#F7F7F7']}
         style={{ flex: 1 }}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -239,13 +271,14 @@ const SettingsScreen = (): JSX.Element => {
         >
           <Animated.View entering={FadeInDown.duration(400).springify()}>
             {/* Appearance Section */}
-            <SettingsSection title="Appearance">
+            <SettingsSection title="Appearance" theme={theme}>
               <SettingsItem
+                theme={theme}
                 icon={
                   <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
                     <Path
                       d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
-                      stroke={THEME.primary}
+                      stroke={theme.primary}
                       strokeWidth={2}
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -258,9 +291,9 @@ const SettingsScreen = (): JSX.Element => {
                   <Switch
                     value={isDarkMode}
                     onValueChange={toggleDarkMode}
-                    trackColor={{ false: THEME.border, true: THEME.primary }}
+                    trackColor={{ false: theme.border, true: theme.primary }}
                     thumbColor={isDarkMode ? '#FFFFFF' : '#FFFFFF'}
-                    ios_backgroundColor={THEME.border}
+                    ios_backgroundColor={theme.border}
                   />
                 }
                 showArrow={false}
@@ -268,20 +301,21 @@ const SettingsScreen = (): JSX.Element => {
             </SettingsSection>
 
             {/* Support Section */}
-            <SettingsSection title="Support">
+            <SettingsSection title="Support" theme={theme}>
               <SettingsItem
+                theme={theme}
                 icon={
                   <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
                     <Path
                       d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"
-                      stroke={THEME.primary}
+                      stroke={theme.primary}
                       strokeWidth={2}
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
                     <Path
                       d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"
-                      stroke={THEME.primary}
+                      stroke={theme.primary}
                       strokeWidth={2}
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -295,41 +329,42 @@ const SettingsScreen = (): JSX.Element => {
             </SettingsSection>
 
             {/* Legal Section */}
-            <SettingsSection title="Legal">
+            <SettingsSection title="Legal" theme={theme}>
               <SettingsItem
+                theme={theme}
                 icon={
                   <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
                     <Path
                       d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-                      stroke={THEME.primary}
+                      stroke={theme.primary}
                       strokeWidth={2}
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
                     <Path
                       d="M14 2v6h6"
-                      stroke={THEME.primary}
+                      stroke={theme.primary}
                       strokeWidth={2}
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
                     <Path
                       d="M16 13H8"
-                      stroke={THEME.primary}
+                      stroke={theme.primary}
                       strokeWidth={2}
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
                     <Path
                       d="M16 17H8"
-                      stroke={THEME.primary}
+                      stroke={theme.primary}
                       strokeWidth={2}
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
                     <Path
                       d="M10 9H8"
-                      stroke={THEME.primary}
+                      stroke={theme.primary}
                       strokeWidth={2}
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -341,11 +376,12 @@ const SettingsScreen = (): JSX.Element => {
                 onPress={openTermsOfUse}
               />
               <SettingsItem
+                theme={theme}
                 icon={
                   <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
                     <Path
                       d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-                      stroke={THEME.primary}
+                      stroke={theme.primary}
                       strokeWidth={2}
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -359,13 +395,14 @@ const SettingsScreen = (): JSX.Element => {
             </SettingsSection>
 
             {/* About Section */}
-            <SettingsSection title="About">
+            <SettingsSection title="About" theme={theme}>
               <SettingsItem
+                theme={theme}
                 icon={
                   <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
                     <Path
                       d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
-                      stroke={THEME.primary}
+                      stroke={theme.primary}
                       strokeWidth={2}
                       strokeLinecap="round"
                       strokeLinejoin="round"
