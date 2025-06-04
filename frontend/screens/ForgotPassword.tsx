@@ -1,4 +1,4 @@
-import { View, Text, Image, TextInput, TouchableOpacity, ImageSourcePropType } from 'react-native'
+import { View, Text, Image, TextInput, TouchableOpacity, ImageSourcePropType, KeyboardAvoidingView, Platform } from 'react-native'
 import React, { JSX, useEffect, useState } from 'react'
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated'
 import { NavigationProp, useNavigation } from '@react-navigation/native'
@@ -9,6 +9,8 @@ import { Formik, FormikHelpers } from 'formik'
 import axios, { AxiosError } from 'axios'
 import Toast from 'react-native-toast-message'
 import Constants from 'expo-constants'
+import { StatusBar } from 'expo-status-bar'
+import { useTheme } from '../contexts/ThemeContext'
 
 const SERVER_URL: string = (Constants.expoConfig?.extra?.SERVER_URL as string) || '';
 const PAGE_URL: string = `${SERVER_URL}/users`;
@@ -64,6 +66,7 @@ type RootStackParamList = {
 
 
 export default function ForgotPassword(): JSX.Element {
+    const { theme } = useTheme();
     const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
     const [imageSizes, setImageSizes] = useState<{ logo: ImageSize }>({
@@ -107,8 +110,15 @@ export default function ForgotPassword(): JSX.Element {
     }
 
     return (
-        <View style={{ backgroundColor: 'white', height: '100%', width: '100%' }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginTop: 80 }}>
+        <KeyboardAvoidingView
+            style={{ flex: 1, backgroundColor: theme.background }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+        >
+            <View style={{ backgroundColor: theme.background, height: '100%', width: '100%' }}>
+                <StatusBar style={theme.statusBarStyle} />
+                
+                <View style={{ flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginTop: 80 }}>
                 <Animated.Image
                 entering={FadeInUp.delay(200).duration(1000).springify()}
                 style={{ width: imageSizes.logo.width, height: imageSizes.logo.height }}
@@ -120,7 +130,7 @@ export default function ForgotPassword(): JSX.Element {
                 <View style={{ alignItems: 'center', marginBottom: 20 }}>
                     <Animated.Text
                         entering={FadeInUp.duration(1000).springify()}
-                        style={{ color: '#0081E4', fontWeight: 'bold', letterSpacing: 1, fontSize: 40 }}
+                        style={{ color: theme.primary, fontWeight: 'bold', letterSpacing: 1, fontSize: 40 }}
                     >
                         Forgot Password
                     </Animated.Text>
@@ -136,31 +146,58 @@ export default function ForgotPassword(): JSX.Element {
                     <View style={{ padding: 20, width: '100%', rowGap: 12 }}>
                         <Animated.View
                         entering={FadeInDown.duration(1000).springify()}
-                        style={{ backgroundColor: 'white', flexDirection: 'row', borderRadius: 16, width: '100%', borderWidth: 1, height: '14%' }}
+                        style={{ 
+                            backgroundColor: theme.card, 
+                            flexDirection: 'row', 
+                            borderRadius: 16, 
+                            width: '100%', 
+                            borderWidth: 1, 
+                            borderColor: theme.border, 
+                            height: '14%' 
+                        }}
                         >
-                        <Ionicons name="mail-outline" size={30} style={{ alignSelf: 'center', paddingLeft: 8 }}/>
+                        <Ionicons 
+                            name="mail-outline" 
+                            size={30} 
+                            color={theme.textSecondary}
+                            style={{ alignSelf: 'center', paddingLeft: 8 }}
+                        />
                         <TextInput
-                            style={{ paddingLeft: 12, width: '100%' }}
+                            style={{ paddingLeft: 12, width: '100%', color: theme.text }}
                             placeholder="Email"
-                            placeholderTextColor="black"
+                            placeholderTextColor={theme.placeholder}
                             onChangeText={handleChange('email')}
                             onBlur={handleBlur('email')}
                             value={values.email}
                             keyboardType='email-address'
                         />
                         </Animated.View>
-                        {errors.email && touched.email && <Text style={{ color: 'red' }}>{errors.email}</Text>}
+                        {errors.email && touched.email && <Text style={{ color: theme.secondary }}>{errors.email}</Text>}
 
                         <Animated.View
                         entering={FadeInDown.delay(200).duration(1000).springify()}
-                        style={{ backgroundColor: 'white', flexDirection: 'row', borderRadius: 16, width: '100%', borderWidth: 1, justifyContent: 'space-between', height: '14%' }}
+                        style={{ 
+                            backgroundColor: theme.card, 
+                            flexDirection: 'row', 
+                            borderRadius: 16, 
+                            width: '100%', 
+                            borderWidth: 1, 
+                            borderColor: theme.border, 
+                            justifyContent: 'space-between', 
+                            height: '14%' 
+                        }}
                         >
                         <View style={{ flexDirection: 'row', paddingLeft: 8 }}>
-                            <Ionicons name="key-outline" size={30} style={{ alignSelf: 'center' }}/>
+                            <Ionicons 
+                                name="key-outline" 
+                                size={30} 
+                                color={theme.textSecondary}
+                                style={{ alignSelf: 'center' }}
+                            />
                             <TextInput
-                            style={{ paddingLeft: 12, width: '80%' }}
+                            style={{ paddingLeft: 12, width: '80%', color: theme.text }}
                             placeholder="New Password"
-                            placeholderTextColor="black"
+                            placeholderTextColor={theme.placeholder}
                             onChangeText={handleChange('password')}
                             onBlur={handleBlur('password')}
                             value={values.password}
@@ -172,21 +209,35 @@ export default function ForgotPassword(): JSX.Element {
                             size={30}
                             onPress={onEyePress}
                             style={{ alignSelf: 'center', paddingRight: 20, width: '20%' }}
-                            color={showPass ? 'black' : '#0081E4'}
+                            color={showPass ? theme.textSecondary : theme.primary}
                         />
                         </Animated.View>
-                        {errors.password && touched.password && <Text style={{ color: 'red' }}>{errors.password}</Text>}
+                        {errors.password && touched.password && <Text style={{ color: theme.secondary }}>{errors.password}</Text>}
 
                         <Animated.View
                         entering={FadeInDown.delay(400).duration(1000).springify()}
-                        style={{ backgroundColor: 'white', flexDirection: 'row', borderRadius: 16, width: '100%', borderWidth: 1, justifyContent: 'space-between', height: '14%' }}
+                        style={{ 
+                            backgroundColor: theme.card, 
+                            flexDirection: 'row', 
+                            borderRadius: 16, 
+                            width: '100%', 
+                            borderWidth: 1, 
+                            borderColor: theme.border, 
+                            justifyContent: 'space-between', 
+                            height: '14%' 
+                        }}
                         >
                         <View style={{ flexDirection: 'row', paddingLeft: 8 }}>
-                            <Ionicons name="key-outline" size={30} style={{ alignSelf: 'center' }}/>
+                            <Ionicons 
+                                name="key-outline" 
+                                size={30} 
+                                color={theme.textSecondary}
+                                style={{ alignSelf: 'center' }}
+                            />
                             <TextInput
-                            style={{ paddingLeft: 12, width: '80%' }}
+                            style={{ paddingLeft: 12, width: '80%', color: theme.text }}
                             placeholder="Confirm New Password"
-                            placeholderTextColor="black"
+                            placeholderTextColor={theme.placeholder}
                             onChangeText={handleChange('confPassword')}
                             onBlur={handleBlur('confPassword')}
                             value={values.confPassword}
@@ -198,18 +249,18 @@ export default function ForgotPassword(): JSX.Element {
                             size={30}
                             onPress={onEyePress2}
                             style={{ alignSelf: 'center', paddingRight: 20, width: '20%' }}
-                            color={showConfPass ? 'black' : '#0081E4'}
+                            color={showConfPass ? theme.textSecondary : theme.primary}
                         />
                         </Animated.View>
-                        {errors.confPassword && touched.confPassword && <Text style={{ color: 'red' }}>{errors.confPassword}</Text>}
+                        {errors.confPassword && touched.confPassword && <Text style={{ color: theme.secondary }}>{errors.confPassword}</Text>}
 
                         <Animated.View
                         entering={FadeInDown.delay(600).duration(1000).springify()}
                         style={{ flexDirection: 'row', justifyContent: 'center', marginVertical: 20 }}
                         >
-                            <Text style={{ fontWeight: 'bold' }}>Already have an account? </Text>
+                            <Text style={{ fontWeight: 'bold', color: theme.text }}>Already have an account? </Text>
                             <TouchableOpacity onPress={() => navigation.push('Login')}>
-                                <Text style={{ color: '#0081E4', fontWeight: 'bold' }}>Login here!</Text>
+                                <Text style={{ color: theme.primary, fontWeight: 'bold' }}>Login here!</Text>
                             </TouchableOpacity>
                         </Animated.View>
 
@@ -218,10 +269,25 @@ export default function ForgotPassword(): JSX.Element {
                         style={{ width: '50%', height: '15%', alignSelf: 'center' }}
                         >
                             <TouchableOpacity
-                                style={{ width: '100%', backgroundColor: '#0081E4', padding: 12, borderRadius: 16, marginBottom: 12, height: '100%', justifyContent: 'center' }}
+                                style={{ 
+                                    width: '100%', 
+                                    backgroundColor: theme.primary, 
+                                    padding: 12, 
+                                    borderRadius: 16, 
+                                    marginBottom: 12, 
+                                    height: '100%', 
+                                    justifyContent: 'center' 
+                                }}
                                 onPress={() => handleSubmit()}
                             >
-                                <Text style={{ fontSize: 18, fontWeight: 'bold', color: 'white', textAlign: 'center' }}>Confirm</Text>
+                                <Text style={{ 
+                                    fontSize: 18, 
+                                    fontWeight: 'bold', 
+                                    color: 'white', 
+                                    textAlign: 'center' 
+                                }}>
+                                    Confirm
+                                </Text>
                             </TouchableOpacity>
                         </Animated.View>
                     </View>
@@ -230,5 +296,6 @@ export default function ForgotPassword(): JSX.Element {
                 </View>
             </View>
         </View>
+        </KeyboardAvoidingView>
     )
 }

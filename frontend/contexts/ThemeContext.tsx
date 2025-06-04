@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { ColorValue } from 'react-native';
+import { StatusBarStyle } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Theme definitions
@@ -21,8 +23,8 @@ export const LIGHT_THEME = {
     bot: '#F2F2F7',
   },
   navbar: '#FFFFFF',
-  gradient: ['#F8F8F8', '#F4F6F8', '#F7F7F7'],
-  statusBarStyle: 'dark-content' as const,
+  gradient: ['#F8F8F8', '#F4F6F8', '#F7F7F7'] as readonly [ColorValue, ColorValue, ...ColorValue[]],
+  statusBarStyle: 'dark' as StatusBarStyle,
 };
 
 export const DARK_THEME = {
@@ -44,11 +46,32 @@ export const DARK_THEME = {
     bot: '#404040',
   },
   navbar: '#262626',
-  gradient: ['#171717', '#1A1A1A', '#171717'],
-  statusBarStyle: 'light-content' as const,
+  gradient: ['#171717', '#1A1A1A', '#171717'] as readonly [ColorValue, ColorValue, ...ColorValue[]],
+  statusBarStyle: 'light' as StatusBarStyle,
 };
 
-export type Theme = typeof LIGHT_THEME;
+export type Theme = {
+  primary: string;
+  secondary: string;
+  tertiary: string;
+  background: string;
+  card: string;
+  text: string;
+  textSecondary: string;
+  placeholder: string;
+  border: string;
+  shadow: {
+    color: string;
+    opacity: number;
+  };
+  bubble: {
+    user: string;
+    bot: string;
+  };
+  navbar: string;
+  gradient: readonly [ColorValue, ColorValue, ...ColorValue[]];
+  statusBarStyle: StatusBarStyle;
+};
 
 interface ThemeContextType {
   theme: Theme;

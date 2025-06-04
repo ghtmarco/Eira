@@ -8,7 +8,8 @@ import {
   Linking, 
   SafeAreaView, 
   StatusBar,
-  Alert
+  Alert,
+  StatusBarStyle
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from "react-native-svg";
@@ -208,166 +209,168 @@ const SettingsScreen = (): JSX.Element => {
   };
   
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <StatusBar 
-        barStyle={theme.statusBarStyle} 
-        backgroundColor={theme.card} 
-      />
-      <LinearGradient
-        colors={theme.gradient}
-        style={{ flex: 1 }}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <ScrollView 
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+        <StatusBar 
+          barStyle={theme.statusBarStyle as StatusBarStyle | undefined} 
+          backgroundColor={theme.card} 
+        />
+        <LinearGradient
+          colors={theme.gradient}
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingVertical: 20 }}
-          showsVerticalScrollIndicator={false}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
         >
-          <Animated.View entering={FadeInDown.duration(400).springify()}>
-            {/* Appearance Section */}
-            <SettingsSection title="Appearance">
-              <SettingsItem
-                icon={
-                  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-                    <Path
-                      d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
-                      stroke={theme.primary}
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+          <ScrollView 
+            style={{ flex: 1 }}
+            contentContainerStyle={{ paddingVertical: 20, paddingBottom: 40 }}
+            showsVerticalScrollIndicator={false}
+          >
+            <Animated.View entering={FadeInDown.duration(400).springify()}>
+              {/* Appearance Section */}
+              <SettingsSection title="Appearance">
+                <SettingsItem
+                  icon={
+                    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+                      <Path
+                        d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+                        stroke={theme.primary}
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </Svg>
+                  }
+                  title="Dark Mode"
+                  subtitle="Switch between light and dark theme"
+                  rightElement={
+                    <Switch
+                      value={isDarkMode}
+                      onValueChange={toggleDarkMode}
+                      trackColor={{ false: theme.border, true: theme.primary }}
+                      thumbColor={isDarkMode ? '#FFFFFF' : '#FFFFFF'}
+                      ios_backgroundColor={theme.border}
                     />
-                  </Svg>
-                }
-                title="Dark Mode"
-                subtitle="Switch between light and dark theme"
-                rightElement={
-                  <Switch
-                    value={isDarkMode}
-                    onValueChange={toggleDarkMode}
-                    trackColor={{ false: theme.border, true: theme.primary }}
-                    thumbColor={isDarkMode ? '#FFFFFF' : '#FFFFFF'}
-                    ios_backgroundColor={theme.border}
-                  />
-                }
-                showArrow={false}
-              />
-            </SettingsSection>
+                  }
+                  showArrow={false}
+                />
+              </SettingsSection>
 
-            {/* Support Section */}
-            <SettingsSection title="Support">
-              <SettingsItem
-                icon={
-                  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-                    <Path
-                      d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"
-                      stroke={theme.primary}
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <Path
-                      d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"
-                      stroke={theme.primary}
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </Svg>
-                }
-                title="Contact Support"
-                subtitle="Get help from our support team"
-                onPress={contactSupport}
-              />
-            </SettingsSection>
+              {/* Support Section */}
+              <SettingsSection title="Support">
+                <SettingsItem
+                  icon={
+                    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+                      <Path
+                        d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"
+                        stroke={theme.primary}
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <Path
+                        d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"
+                        stroke={theme.primary}
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </Svg>
+                  }
+                  title="Contact Support"
+                  subtitle="Get help from our support team"
+                  onPress={contactSupport}
+                />
+              </SettingsSection>
 
-            {/* Legal Section */}
-            <SettingsSection title="Legal">
-              <SettingsItem
-                icon={
-                  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-                    <Path
-                      d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-                      stroke={theme.primary}
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <Path
-                      d="M14 2v6h6"
-                      stroke={theme.primary}
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <Path
-                      d="M16 13H8"
-                      stroke={theme.primary}
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <Path
-                      d="M16 17H8"
-                      stroke={theme.primary}
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <Path
-                      d="M10 9H8"
-                      stroke={theme.primary}
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </Svg>
-                }
-                title="Terms of Use"
-                subtitle="Read our terms and conditions"
-                onPress={openTermsOfUse}
-              />
-              <SettingsItem
-                icon={
-                  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-                    <Path
-                      d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-                      stroke={theme.primary}
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </Svg>
-                }
-                title="Privacy Policy"
-                subtitle="Learn how we protect your data"
-                onPress={openPrivacyPolicy}
-              />
-            </SettingsSection>
+              {/* Legal Section */}
+              <SettingsSection title="Legal">
+                <SettingsItem
+                  icon={
+                    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+                      <Path
+                        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                        stroke={theme.primary}
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <Path
+                        d="M14 2v6h6"
+                        stroke={theme.primary}
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <Path
+                        d="M16 13H8"
+                        stroke={theme.primary}
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <Path
+                        d="M16 17H8"
+                        stroke={theme.primary}
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <Path
+                        d="M10 9H8"
+                        stroke={theme.primary}
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </Svg>
+                  }
+                  title="Terms of Use"
+                  subtitle="Read our terms and conditions"
+                  onPress={openTermsOfUse}
+                />
+                <SettingsItem
+                  icon={
+                    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+                      <Path
+                        d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+                        stroke={theme.primary}
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </Svg>
+                  }
+                  title="Privacy Policy"
+                  subtitle="Learn how we protect your data"
+                  onPress={openPrivacyPolicy}
+                />
+              </SettingsSection>
 
-            {/* About Section */}
-            <SettingsSection title="About">
-              <SettingsItem
-                icon={
-                  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-                    <Path
-                      d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
-                      stroke={theme.primary}
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </Svg>
-                }
-                title="App Version"
-                subtitle={`Version ${APP_VERSION}`}
-                onPress={showVersionInfo}
-              />
-            </SettingsSection>
-          </Animated.View>
-        </ScrollView>
-      </LinearGradient>
-    </SafeAreaView>
+              {/* About Section */}
+              <SettingsSection title="About">
+                <SettingsItem
+                  icon={
+                    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+                      <Path
+                        d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
+                        stroke={theme.primary}
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </Svg>
+                  }
+                  title="App Version"
+                  subtitle={`Version ${APP_VERSION}`}
+                  onPress={showVersionInfo}
+                />
+              </SettingsSection>
+            </Animated.View>
+          </ScrollView>
+        </LinearGradient>
+      </SafeAreaView>
+    </View>
   );
 };
 

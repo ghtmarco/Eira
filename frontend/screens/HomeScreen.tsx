@@ -1,4 +1,5 @@
-import { View, Text, ActivityIndicator, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ListRenderItem, StatusBar, SafeAreaView, Image } from 'react-native'
+import { View, Text, ActivityIndicator, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ListRenderItem, SafeAreaView, Image } from 'react-native'
+import { StatusBar } from 'expo-status-bar'
 import React, { useEffect, useState, useCallback, useRef, JSX } from 'react'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { useFocusEffect, useRoute, useNavigation, RouteProp, NavigationProp } from '@react-navigation/native'
@@ -14,8 +15,13 @@ import Constants from 'expo-constants'
 import { fontStyle } from '../assets/fonts/fontstyle'
 import { useTheme } from '../contexts/ThemeContext'
 
+// Database server URL from .env
 const SERVER_URL: string = (Constants.expoConfig?.extra?.SERVER_URL as string) || '';
 const PAGE_URL: string = `${SERVER_URL}/users/chats`;
+
+// AI server URL - using the direct Gemini API
+const AI_API_KEY: string = (Constants.expoConfig?.extra?.API_KEY as string) || '';
+const GEMINI_URL: string = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent';
 
 // Interfaces
 interface ChatMessage {
@@ -450,15 +456,22 @@ Please respond to: ${newPrompt}`;
       setAiProcessing(true);
       
       const thinkingMessage = { text: "✨ Eira is thinking...", user: false };
-      setMessages(prev => [...prev, thinkingMessage]);
-      
-      try {
-        const aiApiResponse = await axios.post<{ generatedText: string; success?: boolean }>(
-          `${SERVER_URL}/api/ai/generate-response`,
+      setMessages(prev => [...prev, thinkingMessage]);      try {
+        // Call Gemini API directly
+        const aiApiResponse = await axios.post(
+          `${GEMINI_URL}?key=${AI_API_KEY}`,
           {
-            prompt: fullPrompt,
-            chatId: chatId || userResponse.data.chatId,
-            history: historyForBackend
+            contents: [{
+              parts: [{
+                text: fullPrompt
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 1024,
+              topP: 0.9,
+              topK: 40
+            }
           },
           {
             timeout: 30000,
@@ -468,11 +481,13 @@ Please respond to: ${newPrompt}`;
           }
         );
         
-        if (aiApiResponse.data.success === false) {
-          throw new Error('AI service returned error status');
+        if (!aiApiResponse.data.candidates || aiApiResponse.data.candidates.length === 0) {
+          throw new Error('AI service returned empty response');
         }
         
-        text = aiApiResponse.data.generatedText || "I apologize, but I'm having trouble processing your message right now. Please try again.";
+        // Extract text from Gemini response format
+        text = aiApiResponse.data.candidates[0].content.parts[0].text || 
+               "I apologize, but I'm having trouble processing your message right now. Please try again.";
       } catch (aiError) {
         console.warn("AI API error:", aiError);
         
@@ -539,9 +554,9 @@ Please respond to: ${newPrompt}`;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
-      <StatusBar 
-        barStyle={theme.statusBarStyle} 
-        backgroundColor={theme.navbar} 
+      <StatusBar
+        style={theme.statusBarStyle}
+        backgroundColor={theme.navbar}
         translucent={false}
       />
       <LinearGradient

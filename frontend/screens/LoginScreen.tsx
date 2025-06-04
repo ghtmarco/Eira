@@ -1,4 +1,4 @@
-import { View, Text, Image, TextInput, TouchableOpacity, ImageSourcePropType } from 'react-native'
+import { View, Text, Image, TextInput, TouchableOpacity, ImageSourcePropType, KeyboardAvoidingView, Platform } from 'react-native'
 import { JSX, useEffect, useState } from 'react'
 import { StatusBar } from 'expo-status-bar'
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated'
@@ -11,6 +11,7 @@ import axios, { AxiosError } from "axios"
 import Toast from 'react-native-toast-message'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Constants from 'expo-constants'
+import { useTheme } from '../contexts/ThemeContext'
 
 const SERVER_URL: string = (Constants.expoConfig?.extra?.SERVER_URL as string) || '';
 const PAGE_URL: string = `${SERVER_URL}/users`;
@@ -72,6 +73,7 @@ type RootStackParamList = {
 };
 
 export default function LoginScreen(): JSX.Element {
+    const { theme } = useTheme();
     const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
     useEffect(() => {
@@ -122,11 +124,16 @@ export default function LoginScreen(): JSX.Element {
     }
 
     return (
-        <View style={{ backgroundColor: 'white', height: '100%', width: '100%' }}>
-            <StatusBar style="light" />
+        <KeyboardAvoidingView
+            style={{ flex: 1, backgroundColor: theme.background }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+        >
+            <View style={{ backgroundColor: theme.background, height: '100%', width: '100%' }}>
+                <StatusBar style={theme.statusBarStyle} />
 
-            <View
-                style={{
+                <View
+                    style={{
                 flexDirection: 'row',
                 justifyContent: 'space-around',
                 width: '100%',
@@ -155,7 +162,7 @@ export default function LoginScreen(): JSX.Element {
                 <Animated.Text
                     entering={FadeInUp.duration(1000).springify()}
                     style={{
-                    color: '#0081E4',
+                    color: theme.primary,
                     fontWeight: 'bold',
                     letterSpacing: 1,
                     fontSize: 48,
@@ -196,23 +203,25 @@ export default function LoginScreen(): JSX.Element {
                         <Animated.View
                         entering={FadeInDown.duration(1000).springify()}
                         style={{
-                            backgroundColor: 'white',
+                            backgroundColor: theme.card,
                             flexDirection: 'row',
                             borderRadius: 16,
                             width: '100%',
                             borderWidth: 1,
+                            borderColor: theme.border,
                             height: '15%',
                         }}
                         >
                         <Ionicons
                             name="mail-outline"
                             size={30}
+                            color={theme.textSecondary}
                             style={{ alignSelf: 'center', paddingLeft: 8 }}
                         />
                         <TextInput
-                            style={{ paddingLeft: 12, width: '100%' }}
+                            style={{ paddingLeft: 12, width: '100%', color: theme.text }}
                             placeholder="Email"
-                            placeholderTextColor="black"
+                            placeholderTextColor={theme.placeholder}
                             onChangeText={handleChange('email')}
                             onBlur={handleBlur('email')}
                             value={values.email}
@@ -220,17 +229,18 @@ export default function LoginScreen(): JSX.Element {
                         />
                         </Animated.View>
                         {errors.email && touched.email && (
-                        <Text style={{ color: 'red' }}>{errors.email}</Text>
+                        <Text style={{ color: theme.secondary }}>{errors.email}</Text>
                         )}
 
                         <Animated.View
                         entering={FadeInDown.delay(200).duration(1000).springify()}
                         style={{
-                            backgroundColor: 'white',
+                            backgroundColor: theme.card,
                             flexDirection: 'row',
                             borderRadius: 16,
                             width: '100%',
                             borderWidth: 1,
+                            borderColor: theme.border,
                             justifyContent: 'space-between',
                             height: '15%',
                         }}
@@ -239,12 +249,13 @@ export default function LoginScreen(): JSX.Element {
                             <Ionicons
                             name="key-outline"
                             size={30}
+                            color={theme.textSecondary}
                             style={{ alignSelf: 'center' }}
                             />
                             <TextInput
-                            style={{ paddingLeft: 12, width: '80%' }}
+                            style={{ paddingLeft: 12, width: '80%', color: theme.text }}
                             placeholder="Password"
-                            placeholderTextColor="black"
+                            placeholderTextColor={theme.placeholder}
                             onChangeText={handleChange('password')}
                             onBlur={handleBlur('password')}
                             value={values.password}
@@ -256,11 +267,11 @@ export default function LoginScreen(): JSX.Element {
                             size={30}
                             onPress={onEyePress}
                             style={{ alignSelf: 'center', paddingRight: 20, width: '20%' }}
-                            color={showPass ? 'black' : '#0081E4'}
+                            color={showPass ? theme.textSecondary : theme.primary}
                         />
                         </Animated.View>
                         {errors.password && touched.password && (
-                        <Text style={{ color: 'red' }}>{errors.password}</Text>
+                        <Text style={{ color: theme.secondary }}>{errors.password}</Text>
                         )}
 
                         <Animated.View
@@ -268,7 +279,7 @@ export default function LoginScreen(): JSX.Element {
                         style={{ width: '100%', alignItems: 'flex-end', marginBottom: 40 }}
                         >
                         <TouchableOpacity onPress={() => navigation.push('ForgotPassword')}>
-                            <Text style={{ color: '#0081E4', fontWeight: 'bold' }}>
+                            <Text style={{ color: theme.primary, fontWeight: 'bold' }}>
                             Forgot Password
                             </Text>
                         </TouchableOpacity>
@@ -282,9 +293,9 @@ export default function LoginScreen(): JSX.Element {
                             marginBottom: 40,
                         }}
                         >
-                        <Text style={{ fontWeight: 'bold' }}>Do not have an account? </Text>
+                        <Text style={{ fontWeight: 'bold', color: theme.text }}>Do not have an account? </Text>
                         <TouchableOpacity onPress={() => navigation.push('Signup')}>
-                            <Text style={{ color: '#0081E4', fontWeight: 'bold' }}>
+                            <Text style={{ color: theme.primary, fontWeight: 'bold' }}>
                             Register here!
                             </Text>
                         </TouchableOpacity>
@@ -297,7 +308,7 @@ export default function LoginScreen(): JSX.Element {
                         <TouchableOpacity
                             style={{
                             width: '100%',
-                            backgroundColor: '#0081E4',
+                            backgroundColor: theme.primary,
                             padding: 12,
                             borderRadius: 16,
                             marginBottom: 12,
@@ -324,5 +335,6 @@ export default function LoginScreen(): JSX.Element {
                 </View>
             </View>
         </View>
+        </KeyboardAvoidingView>
   )
 }

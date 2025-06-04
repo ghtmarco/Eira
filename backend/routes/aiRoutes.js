@@ -30,70 +30,16 @@ router.post("/generate-response", async (req, res) => {
       });
     }
 
-    let chat;
-    
-    if (chatId && chatSessions.has(chatId)) {
-      // Use existing chat session
-      chat = chatSessions.get(chatId);
-    } else {
-      // Create new chat session
-      chat = ai.chats.create({
-        model: 'gemini-2.0-flash-001',
-        config: {
-          temperature: 0.7,
-          maxOutputTokens: 1024,
-          topP: 0.9,
-          topK: 40
-        }
-      });
-
-      // If chatId is provided, store the session
-      if (chatId) {
-        chatSessions.set(chatId, chat);
+    // Generate content using the new API
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.0-flash-001',
+      contents: prompt.trim(),
+      config: {
+        temperature: 0.7,
+        maxOutputTokens: 1024,
+        topP: 0.9,
+        topK: 40
       }
-    }
-
-    // If history is provided but no existing session, initialize with history
-    if (history && Array.isArray(history) && history.length > 0 && !chatSessions.has(chatId)) {
-      // Convert history to Google GenAI format and prefill the conversation
-      const formattedHistory = [];
-      
-      for (const msg of history) {
-        if (msg.user && msg.text) {
-          formattedHistory.push({
-            role: 'user',
-            parts: [{ text: msg.text }]
-          });
-        } else if (!msg.user && msg.text) {
-          formattedHistory.push({
-            role: 'model',
-            parts: [{ text: msg.text }]
-          });
-        }
-      }
-
-      // If we have history, create a new chat with that history
-      if (formattedHistory.length > 0) {
-        chat = ai.chats.create({
-          model: 'gemini-2.0-flash-001',
-          config: {
-            temperature: 0.7,
-            maxOutputTokens: 1024,
-            topP: 0.9,
-            topK: 40
-          },
-          history: formattedHistory
-        });
-
-        if (chatId) {
-          chatSessions.set(chatId, chat);
-        }
-      }
-    }
-
-    // Send message to the chat
-    const response = await chat.sendMessage({
-      message: prompt.trim()
     });
 
     // Extract the text response
