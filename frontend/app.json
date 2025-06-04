@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "project",
+    "slug": "project",
+    "sdkVersion": "53.0.0",
+    "version": "1.0.0",
+    "platforms": ["android", "ios", "web"],
+    "plugins": ["expo-font"],
+    "android": {
+      "package": "com.anonymous.project"
+    }
+  }
+}
