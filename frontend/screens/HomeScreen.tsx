@@ -86,6 +86,13 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ item, index }) => {
           overflow: 'hidden',
           alignSelf: item.user ? 'flex-end' : 'flex-start',
           maxWidth: '100%',
+          // Shadow for iOS
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 3,
+          // Elevation for Android
+          elevation: 3,
         }}
       >
         <View style={{ flexShrink: 1 }}>
@@ -239,7 +246,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({ userInput, setUserInp
         backgroundColor: isDarkMode ? `${theme.card}F0` : `${theme.card}F5`, 
         borderTopWidth: 0.5, 
         borderTopColor: theme.border,
-        paddingBottom: Platform.OS === "ios" ? 4 : 2,
+        paddingBottom: Platform.OS === "ios" ? 20 : 16, // Increased paddingBottom
       }}
       keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 50}
     >
@@ -608,7 +615,18 @@ Please respond to: ${newPrompt}`;
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+    <SafeAreaView 
+      style={{ 
+        flex: 1, 
+        backgroundColor: theme.background,
+        // Subtle shadow for the entire screen content, affecting the top area
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
+      }}
+    >
       <StatusBar
         style={theme.statusBarStyle}
         backgroundColor={theme.navbar}
