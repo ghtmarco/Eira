@@ -8,28 +8,13 @@ import Constants from 'expo-constants'
 import Svg, { Path } from "react-native-svg"
 import { LinearGradient } from 'expo-linear-gradient'
 import Toast from 'react-native-toast-message'
+import { useTheme } from '../contexts/ThemeContext'
 
 const SERVER_URL: string = (Constants.expoConfig?.extra?.SERVER_URL as string) || '';
 const PAGE_URL: string = `${SERVER_URL}/users/chats/user`;
 
 console.log('SERVER_URL:', SERVER_URL);
 console.log('PAGE_URL:', PAGE_URL);
-
-// Theme colors - iOS inspired
-const THEME = {
-  primary: '#007AFF',  // iOS blue
-  secondary: '#FF3B30', // iOS red
-  tertiary: '#34C759', // iOS green
-  background: '#F7F7F7', // iOS light background
-  card: '#FFFFFF',
-  text: '#111111', // Darker text for better contrast
-  textSecondary: '#8E8E93', // iOS secondary text
-  placeholder: '#C7C7CC', // iOS placeholder text
-  shadow: {
-    color: '#000000',
-    opacity: 0.08,
-  }
-};
 
 interface ApiChatMessage { 
   message: string;
@@ -47,8 +32,8 @@ type RootStackParamList = {
   History: undefined;
 };
 
-
 const HistoryScreen = (): JSX.Element => {
+  const { theme } = useTheme();
   const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [deleting, setDeleting] = useState<{[key: string]: boolean}>({});
@@ -84,7 +69,6 @@ const HistoryScreen = (): JSX.Element => {
   );
 
   const handleDeleteChat = async (chatId: string) => {
-    // Temporary: Check if delete endpoint is available
     Alert.alert(
       "Feature Temporarily Unavailable",
       "The delete functionality is currently not available as the server is being updated. Please try again later.",
@@ -96,95 +80,38 @@ const HistoryScreen = (): JSX.Element => {
       ]
     );
     return;
-    
-    // Original delete logic (commented out until server is updated)
-    /*
-    Alert.alert(
-      "Delete Conversation",
-      "Are you sure you want to delete this conversation? This action cannot be undone.",
-      [
-        {
-          text: "Cancel",
-          style: "cancel"
-        },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              setDeleting(prev => ({ ...prev, [chatId]: true }));
-              const deleteUrl = `${SERVER_URL}/users/chats/${chatId}`;
-              console.log('Delete URL:', deleteUrl);
-              console.log('ChatId:', chatId);
-              console.log('SERVER_URL:', SERVER_URL);
-              
-              await axios.delete(deleteUrl);
-              setChatHistory(prev => prev.filter(chat => chat._id !== chatId));
-              Toast.show({
-                type: 'success',
-                text1: 'Conversation Deleted',
-                text2: 'The conversation has been removed.',
-                position: 'bottom',
-                visibilityTime: 2000,
-              });
-            } catch (error) {
-              console.error("Failed to delete chat:", error);
-              if ((error as any).response) {
-                console.error("Error response status:", (error as any).response.status);
-                console.error("Error response data:", (error as any).response.data);
-              }
-              Toast.show({
-                type: 'error',
-                text1: 'Delete Failed',
-                text2: 'Unable to delete the conversation.',
-                position: 'bottom',
-                visibilityTime: 3000,
-              });
-            } finally {
-              setDeleting(prev => ({ ...prev, [chatId]: false }));
-            }
-          }
-        }
-      ]
-    );
-    */
   };
 
   const renderChat: ListRenderItem<ChatHistoryItem> = ({ item, index }) => {
-    // Get the first user message as the title, or use the first available message
     const firstUserMessage = item.messages.find(msg => msg.sender === "user");
     const firstMessage = firstUserMessage || item.messages[0];
     
-    // Format the message as a title - truncate if too long
     const title = firstMessage?.message ? 
       (firstMessage.message.length > 35 ? 
         firstMessage.message.substring(0, 35) + '...' : 
         firstMessage.message) : 
       "Conversation";
     
-    // Get the most recent message time for displaying date
     const mostRecentMessage = item.messages[item.messages.length - 1];
     const messageDate = mostRecentMessage?.timestamp ? 
       new Date(mostRecentMessage.timestamp) : 
       new Date();
     
-    // Format the date to show either today's time, or the date for older messages
     const now = new Date();
     const isToday = messageDate.toDateString() === now.toDateString();
     const dateDisplay = isToday ? 
       messageDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 
       messageDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
     
-    // Get message count
     const messageCount = item.messages.length;
     
     return (
       <Animated.View
         entering={FadeInDown.duration(400).delay(index * 100).springify()}
       >
-        <View style={styles.chatCard}>
+        <View style={[styles.chatCard, { backgroundColor: theme.card, shadowColor: theme.shadow.color }]}>
           <View style={styles.chatHeader}>
-            <Text style={styles.chatTitle} numberOfLines={1}>
+            <Text style={[styles.chatTitle, { color: theme.text }]} numberOfLines={1}>
               {title}
             </Text>
             
@@ -194,19 +121,19 @@ const HistoryScreen = (): JSX.Element => {
               disabled={deleting[item._id]}
             >
               {deleting[item._id] ? (
-                <ActivityIndicator size="small" color={THEME.secondary} />
+                <ActivityIndicator size="small" color={theme.secondary} />
               ) : (
                 <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
                   <Path
                     d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"
-                    stroke={THEME.secondary}
+                    stroke={theme.secondary}
                     strokeWidth={1.5}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
                   <Path
                     d="M10 11v6M14 11v6"
-                    stroke={THEME.secondary}
+                    stroke={theme.secondary}
                     strokeWidth={1.5}
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -217,10 +144,10 @@ const HistoryScreen = (): JSX.Element => {
           </View>
           
           <View style={styles.chatInfo}>
-            <Text style={styles.messageCount}>
+            <Text style={[styles.messageCount, { color: theme.textSecondary }]}>
               {messageCount} {messageCount === 1 ? 'message' : 'messages'}
             </Text>
-            <Text style={styles.messageDate}>{dateDisplay}</Text>
+            <Text style={[styles.messageDate, { color: theme.textSecondary }]}>{dateDisplay}</Text>
           </View>
           
           <TouchableOpacity
@@ -254,7 +181,7 @@ const HistoryScreen = (): JSX.Element => {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#F8F8F8', '#F4F6F8', '#F7F7F7']}
+        colors={theme.gradient}
         style={styles.gradientBackground}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -263,23 +190,23 @@ const HistoryScreen = (): JSX.Element => {
             <View style={styles.loadingContainer}>
               <ActivityIndicator
                 size="large"
-                color={THEME.primary}
+                color={theme.primary}
               />
-              <Text style={styles.loadingText}>Loading conversations...</Text>
+              <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Loading conversations...</Text>
             </View>
           ) : chatHistory.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Svg width={50} height={50} viewBox="0 0 24 24" fill="none">
                 <Path
                   d="M8 12h8M8 16h4M12 3h7a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h7z"
-                  stroke={THEME.textSecondary}
+                  stroke={theme.textSecondary}
                   strokeWidth={1.5}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
               </Svg>
-              <Text style={styles.emptyTitle}>No Conversations Yet</Text>
-              <Text style={styles.emptyText}>
+              <Text style={[styles.emptyTitle, { color: theme.text }]}>No Conversations Yet</Text>
+              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
                 Start a new conversation from the chat screen.
               </Text>
               <TouchableOpacity
@@ -324,11 +251,9 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   chatCard: {
-    backgroundColor: THEME.card,
     marginBottom: 16,
     padding: 16,
     borderRadius: 14,
-    shadowColor: THEME.shadow.color,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -343,7 +268,6 @@ const styles = StyleSheet.create({
   chatTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: THEME.text,
     flex: 1,
   },
   deleteButton: {
@@ -361,12 +285,10 @@ const styles = StyleSheet.create({
   },
   messageCount: {
     fontSize: 14,
-    color: THEME.textSecondary,
     fontWeight: '400',
   },
   messageDate: {
     fontSize: 13,
-    color: THEME.textSecondary,
     fontWeight: '500',
   },
   continueButton: {
@@ -396,7 +318,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: THEME.textSecondary,
   },
   emptyContainer: {
     flex: 1,
@@ -407,13 +328,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: THEME.text,
     marginTop: 20,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 16,
-    color: THEME.textSecondary,
     textAlign: 'center',
     marginBottom: 30,
   },

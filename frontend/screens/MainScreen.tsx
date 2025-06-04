@@ -12,8 +12,9 @@ import SettingsScreen from './SettingsScreen';
 import { Image, View, Text, Pressable, TouchableOpacity, ImageSourcePropType } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Path, G } from "react-native-svg";
-import { useNavigation, useRoute, NavigationProp, CommonActions, RouteProp } from '@react-navigation/native'; // Ensure CommonActions is imported, useRoute
+import { useNavigation, useRoute, NavigationProp, CommonActions, RouteProp } from '@react-navigation/native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
+import { useTheme } from '../contexts/ThemeContext';
 
 export type DrawerParamList = {
   Chat: undefined;
@@ -67,6 +68,7 @@ interface CustomDrawerContentProps extends DrawerContentComponentProps {
 
 const CustomDrawerContent = (props: CustomDrawerContentProps): JSX.Element => {
   const { userData, navigation } = props;
+  const { theme } = useTheme();
 
   return (
     <DrawerContentScrollView 
@@ -76,7 +78,7 @@ const CustomDrawerContent = (props: CustomDrawerContentProps): JSX.Element => {
         paddingTop: 0,
       }}
       style={{
-        backgroundColor: '#FFFFFF',
+        backgroundColor: theme.card,
       }}
     >
       <View
@@ -84,7 +86,7 @@ const CustomDrawerContent = (props: CustomDrawerContentProps): JSX.Element => {
           alignItems: 'center',
           flexDirection: 'row',
           paddingHorizontal: 16,
-          paddingTop: 60, // More space at the top for iPhone-like design
+          paddingTop: 60,
           paddingBottom: 20,
           backgroundColor: 'transparent',
           marginBottom: 15,
@@ -103,12 +105,12 @@ const CustomDrawerContent = (props: CustomDrawerContentProps): JSX.Element => {
           <Text style={{ 
             fontSize: 17, 
             fontWeight: '600',
-            color: '#333333',
+            color: theme.text,
             marginBottom: 4,
           }}>
             {userData.username || 'User'}
           </Text>
-          <Text style={{ color: '#777777', fontSize: 13 }}>{userData.email || 'No email'}</Text>
+          <Text style={{ color: theme.textSecondary, fontSize: 13 }}>{userData.email || 'No email'}</Text>
         </View>
       </View>
 
@@ -161,6 +163,8 @@ interface CustomHamburgerProps {
 }
 
 const CustomHamburger = ({ navigation }: CustomHamburgerProps): JSX.Element => {
+  const { theme } = useTheme();
+  
   return (
     <Animated.View key={navigation.getState().index} entering={FadeInUp.duration(500)}>
       <Pressable 
@@ -170,9 +174,9 @@ const CustomHamburger = ({ navigation }: CustomHamburgerProps): JSX.Element => {
         }}
       >
         <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-          <Path d="M3.5 6.5h17" stroke="#333333" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-          <Path d="M3.5 12h17" stroke="#333333" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-          <Path d="M3.5 17.5h17" stroke="#333333" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+          <Path d="M3.5 6.5h17" stroke={theme.text} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+          <Path d="M3.5 12h17" stroke={theme.text} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+          <Path d="M3.5 17.5h17" stroke={theme.text} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
         </Svg>
       </Pressable>
     </Animated.View>
@@ -180,6 +184,7 @@ const CustomHamburger = ({ navigation }: CustomHamburgerProps): JSX.Element => {
 };
 
 const MainScreen = (): JSX.Element => {
+  const { theme } = useTheme();
   const [userData, setUserData] = useState<UserData>({ username: null, email: null, id: null });
 
   const fetchUser = async (): Promise<void> => {
@@ -208,7 +213,7 @@ const MainScreen = (): JSX.Element => {
       drawerContent={renderDrawerContent}
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: theme.navbar,
           elevation: 0,
           shadowColor: 'transparent',
           height: 90,
@@ -217,9 +222,9 @@ const MainScreen = (): JSX.Element => {
           paddingLeft: 12,
         },
         headerTitleAlign: 'center',
-        drawerActiveBackgroundColor: 'rgba(0,129,228,0.08)',
-        drawerActiveTintColor: '#0081E4',
-        drawerInactiveTintColor: '#333333',
+        drawerActiveBackgroundColor: `${theme.primary}15`,
+        drawerActiveTintColor: theme.primary,
+        drawerInactiveTintColor: theme.text,
         drawerLabelStyle: {
           fontSize: 17,
           fontWeight: '400',
@@ -264,7 +269,7 @@ const MainScreen = (): JSX.Element => {
                 <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
                   <Path
                     d="M12 4V20M4 12H20"
-                    stroke="#333333"
+                    stroke={theme.text}
                     strokeWidth="1.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -279,7 +284,7 @@ const MainScreen = (): JSX.Element => {
           drawerIcon: ({ focused }: { focused: boolean; color: string; size: number }) => (
             <Svg width="22" height="22" viewBox="0 0 24 24" fill="none">
               <Path d="M3 20V4C3 3.44772 3.44772 3 4 3H20C20.5523 3 21 3.44772 21 4V16C21 16.5523 20.5523 17 20 17H6L3 20Z" 
-                stroke={focused ? "#0081E4" : "#333333"} 
+                stroke={focused ? theme.primary : theme.text} 
                 strokeWidth="1.5" 
                 strokeLinecap="round" 
                 strokeLinejoin="round" />
@@ -299,7 +304,7 @@ const MainScreen = (): JSX.Element => {
             <Svg width="22" height="22" viewBox="0 0 24 24" fill="none">
               <Path 
                 d="M6 6H1V1M1.29102 14.3569C2.22284 15.7918 3.59014 16.8902 5.19218 17.4907C6.79422 18.0913 8.547 18.1624 10.1925 17.6937C11.8379 17.225 13.2893 16.2413 14.3344 14.8867C15.3795 13.5321 15.963 11.878 15.9989 10.1675C16.0347 8.45695 15.5211 6.78001 14.5337 5.38281C13.5462 3.98561 12.1366 2.942 10.5122 2.40479C8.88783 1.86757 7.13408 1.86499 5.5083 2.39795C3.88252 2.93091 2.47059 3.97095 1.47949 5.36556" 
-                stroke={focused ? "#0081E4" : "#333333"} 
+                stroke={focused ? theme.primary : theme.text} 
                 strokeWidth="1.5" 
                 strokeLinecap="round" 
                 strokeLinejoin="round" />
@@ -319,14 +324,14 @@ const MainScreen = (): JSX.Element => {
             <Svg width="22" height="22" viewBox="0 0 24 24" fill="none">
               <Path 
                 d="M9.405 1.05c-.413-1.4 2.177-1.4 1.764 0l-.2.68a1.18 1.18 0 001.781 1.348l.625-.382c1.325-.809 2.547.413 1.738 1.738l-.382.625a1.18 1.18 0 001.348 1.781l.68-.2c1.4-.413 1.4 2.177 0 1.764l-.68.2a1.18 1.18 0 00-1.348 1.781l.382.625c.809 1.325-.413 2.547-1.738 1.738l-.625-.382a1.18 1.18 0 00-1.781 1.348l.2.68c.413 1.4-2.177 1.4-1.764 0l.2-.68a1.18 1.18 0 00-1.781-1.348l-.625.382c-1.325.809-2.547-.413-1.738-1.738l.382-.625a1.18 1.18 0 00-1.348-1.781l-.68.2c-1.4.413-1.4-2.177 0-1.764l.68-.2a1.18 1.18 0 001.348-1.781l-.382-.625c-.809-1.325.413-2.547 1.738-1.738l.625.382a1.18 1.18 0 001.781-1.348l-.2-.68z"
-                stroke={focused ? "#0081E4" : "#333333"} 
+                stroke={focused ? theme.primary : theme.text} 
                 strokeWidth="1.5" 
                 strokeLinecap="round" 
                 strokeLinejoin="round" 
               />
               <Path 
                 d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                stroke={focused ? "#0081E4" : "#333333"} 
+                stroke={focused ? theme.primary : theme.text} 
                 strokeWidth="1.5" 
                 strokeLinecap="round" 
                 strokeLinejoin="round" 

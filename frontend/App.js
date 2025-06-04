@@ -8,6 +8,7 @@ import MainScreen from './screens/MainScreen'
 import ForgotPassword from './screens/ForgotPassword'
 import Toast from 'react-native-toast-message'
 import { useFonts } from 'expo-font'
+import { ThemeProvider } from './contexts/ThemeContext'
 
 const Stack = createNativeStackNavigator()
 
@@ -64,14 +65,16 @@ export default function App() {
   });
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName='Login' screenOptions={{headerShown: false}}>
-        <Stack.Screen name='Login' component={LoginScreen}/>
-        <Stack.Screen name='Signup' component={SignupScreen}/>
-        <Stack.Screen name='Main' component={MainScreen}/>
-        <Stack.Screen name='ForgotPassword' component={ForgotPassword}/>
-      </Stack.Navigator>
-      <Toast config={toastConfig}/>
-    </NavigationContainer>
+    <ThemeProvider>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName='Login' screenOptions={{headerShown: false}}>
+          <Stack.Screen name='Login' component={LoginScreen}/>
+          <Stack.Screen name='Signup' component={SignupScreen}/>
+          <Stack.Screen name='Main' component={MainScreen}/>
+          <Stack.Screen name='ForgotPassword' component={ForgotPassword}/>
+        </Stack.Navigator>
+        <Toast config={toastConfig}/>
+      </NavigationContainer>
+    </ThemeProvider>
   )
 }

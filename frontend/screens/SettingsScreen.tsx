@@ -1,4 +1,4 @@
-import React, { useState, useEffect, JSX } from 'react';
+import React, { JSX } from 'react';
 import { 
   View, 
   Text, 
@@ -13,45 +13,12 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from "react-native-svg";
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import Toast from 'react-native-toast-message';
+import { useTheme } from '../contexts/ThemeContext';
 
 const PHONE_NUMBER: string = (Constants.expoConfig?.extra?.PHONE_NUMBER as string) || '';
 const APP_VERSION = '1.0.0';
-
-// Modern dark mode color scheme inspired by 21dev
-const LIGHT_THEME = {
-  primary: '#007AFF',
-  secondary: '#FF3B30',
-  tertiary: '#34C759',
-  background: '#F7F7F7',
-  card: '#FFFFFF',
-  text: '#111111',
-  textSecondary: '#8E8E93',
-  placeholder: '#C7C7CC',
-  border: '#E1E1E1',
-  shadow: {
-    color: '#000000',
-    opacity: 0.08,
-  }
-};
-
-const DARK_THEME = {
-  primary: '#0A84FF',
-  secondary: '#FF453A',
-  tertiary: '#30D158',
-  background: '#171717', // Deep dark background
-  card: '#262626', // Card background
-  text: '#FFFFFF',
-  textSecondary: '#A3A3A3',
-  placeholder: '#525252',
-  border: '#404040',
-  shadow: {
-    color: '#000000',
-    opacity: 0.4,
-  }
-};
 
 interface SettingsItemProps {
   icon: JSX.Element;
@@ -60,7 +27,6 @@ interface SettingsItemProps {
   onPress?: () => void;
   rightElement?: JSX.Element;
   showArrow?: boolean;
-  theme: typeof LIGHT_THEME;
 }
 
 const SettingsItem: React.FC<SettingsItemProps> = ({ 
@@ -70,126 +36,114 @@ const SettingsItem: React.FC<SettingsItemProps> = ({
   onPress, 
   rightElement, 
   showArrow = true,
-  theme
-}) => (
-  <TouchableOpacity
-    style={{
-      backgroundColor: theme.card,
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      borderBottomWidth: 0.5,
-      borderBottomColor: theme.border,
-    }}
-    onPress={onPress}
-    activeOpacity={0.7}
-    disabled={!onPress}
-  >
-    <View style={{
-      width: 32,
-      height: 32,
-      borderRadius: 8,
-      backgroundColor: `${theme.primary}15`,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginRight: 12,
-    }}>
-      {icon}
-    </View>
-    
-    <View style={{ flex: 1 }}>
-      <Text style={{
-        fontSize: 16,
-        fontWeight: '500',
-        color: theme.text,
-        marginBottom: subtitle ? 2 : 0,
+}) => {
+  const { theme } = useTheme();
+  
+  return (
+    <TouchableOpacity
+      style={{
+        backgroundColor: theme.card,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        borderBottomWidth: 0.5,
+        borderBottomColor: theme.border,
+      }}
+      onPress={onPress}
+      activeOpacity={0.7}
+      disabled={!onPress}
+    >
+      <View style={{
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        backgroundColor: `${theme.primary}15`,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
       }}>
-        {title}
-      </Text>
-      {subtitle && (
+        {icon}
+      </View>
+      
+      <View style={{ flex: 1 }}>
         <Text style={{
-          fontSize: 13,
-          color: theme.textSecondary,
+          fontSize: 16,
+          fontWeight: '500',
+          color: theme.text,
+          marginBottom: subtitle ? 2 : 0,
         }}>
-          {subtitle}
+          {title}
         </Text>
-      )}
-    </View>
-    
-    {rightElement || (showArrow && onPress && (
-      <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
-        <Path
-          d="M9 18l6-6-6-6"
-          stroke={theme.textSecondary}
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </Svg>
-    ))}
-  </TouchableOpacity>
-);
+        {subtitle && (
+          <Text style={{
+            fontSize: 13,
+            color: theme.textSecondary,
+          }}>
+            {subtitle}
+          </Text>
+        )}
+      </View>
+      
+      {rightElement || (showArrow && onPress && (
+        <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+          <Path
+            d="M9 18l6-6-6-6"
+            stroke={theme.textSecondary}
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+      ))}
+    </TouchableOpacity>
+  );
+};
 
 interface SettingsSectionProps {
   title: string;
   children: React.ReactNode;
-  theme: typeof LIGHT_THEME;
 }
 
-const SettingsSection: React.FC<SettingsSectionProps> = ({ title, children, theme }) => (
-  <View style={{ marginBottom: 32 }}>
-    <Text style={{
-      fontSize: 13,
-      fontWeight: '500',
-      color: theme.textSecondary,
-      marginLeft: 16,
-      marginBottom: 8,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-    }}>
-      {title}
-    </Text>
-    <View style={{
-      backgroundColor: theme.card,
-      borderRadius: 12,
-      marginHorizontal: 16,
-      shadowColor: theme.shadow.color,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 3,
-      elevation: 1,
-      overflow: 'hidden',
-    }}>
-      {children}
+const SettingsSection: React.FC<SettingsSectionProps> = ({ title, children }) => {
+  const { theme } = useTheme();
+  
+  return (
+    <View style={{ marginBottom: 32 }}>
+      <Text style={{
+        fontSize: 13,
+        fontWeight: '500',
+        color: theme.textSecondary,
+        marginLeft: 16,
+        marginBottom: 8,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+      }}>
+        {title}
+      </Text>
+      <View style={{
+        backgroundColor: theme.card,
+        borderRadius: 12,
+        marginHorizontal: 16,
+        shadowColor: theme.shadow.color,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+        elevation: 1,
+        overflow: 'hidden',
+      }}>
+        {children}
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 const SettingsScreen = (): JSX.Element => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  
-  // Select theme based on isDarkMode state
-  const theme = isDarkMode ? DARK_THEME : LIGHT_THEME;
+  const { theme, isDarkMode, toggleTheme } = useTheme();
 
-  useEffect(() => {
-    loadThemePreference();
-  }, []);
-
-  const loadThemePreference = async () => {
-    try {
-      const savedTheme = await AsyncStorage.getItem('isDarkMode');
-      if (savedTheme !== null) {
-        setIsDarkMode(JSON.parse(savedTheme));
-      }
-    } catch (error) {
-      console.error('Error loading theme preference:', error);
-    }
-  };
   const toggleDarkMode = async (value: boolean) => {
     try {
-      setIsDarkMode(value);
-      await AsyncStorage.setItem('isDarkMode', JSON.stringify(value));
+      await toggleTheme();
       
       Toast.show({
         type: 'success',
@@ -252,14 +206,15 @@ const SettingsScreen = (): JSX.Element => {
       [{ text: 'OK' }]
     );
   };
+  
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <StatusBar 
-        barStyle={isDarkMode ? "light-content" : "dark-content"} 
+        barStyle={theme.statusBarStyle} 
         backgroundColor={theme.card} 
       />
       <LinearGradient
-        colors={isDarkMode ? [theme.background, theme.background, theme.background] : ['#F8F8F8', '#F4F6F8', '#F7F7F7']}
+        colors={theme.gradient}
         style={{ flex: 1 }}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -271,9 +226,8 @@ const SettingsScreen = (): JSX.Element => {
         >
           <Animated.View entering={FadeInDown.duration(400).springify()}>
             {/* Appearance Section */}
-            <SettingsSection title="Appearance" theme={theme}>
+            <SettingsSection title="Appearance">
               <SettingsItem
-                theme={theme}
                 icon={
                   <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
                     <Path
@@ -301,9 +255,8 @@ const SettingsScreen = (): JSX.Element => {
             </SettingsSection>
 
             {/* Support Section */}
-            <SettingsSection title="Support" theme={theme}>
+            <SettingsSection title="Support">
               <SettingsItem
-                theme={theme}
                 icon={
                   <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
                     <Path
@@ -329,9 +282,8 @@ const SettingsScreen = (): JSX.Element => {
             </SettingsSection>
 
             {/* Legal Section */}
-            <SettingsSection title="Legal" theme={theme}>
+            <SettingsSection title="Legal">
               <SettingsItem
-                theme={theme}
                 icon={
                   <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
                     <Path
@@ -376,7 +328,6 @@ const SettingsScreen = (): JSX.Element => {
                 onPress={openTermsOfUse}
               />
               <SettingsItem
-                theme={theme}
                 icon={
                   <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
                     <Path
@@ -395,9 +346,8 @@ const SettingsScreen = (): JSX.Element => {
             </SettingsSection>
 
             {/* About Section */}
-            <SettingsSection title="About" theme={theme}>
+            <SettingsSection title="About">
               <SettingsItem
-                theme={theme}
                 icon={
                   <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
                     <Path
