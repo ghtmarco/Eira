@@ -47,8 +47,7 @@ interface ImageSize {
 }
 
 const getImageSize = (imageSource: ImageSourcePropType): ImageSize => {
-    const { width, height } = Image.resolveAssetSource(imageSource);
-    return { width, height };
+    return { width: 200, height: 200 };
 };
 
 type RootStackParamList = {
@@ -77,7 +76,6 @@ export default function SignupScreen(): JSX.Element {
                 Toast.show({text1: "Register Failed", text2: response.message, type:"error", position: 'bottom'});
             }
         } catch (error) {
-            console.error("Registration error:", error);
             Toast.show({text1: "Register Failed", text2: "An unexpected error occurred.", type:"error", position: 'bottom'});
         }
         setSubmitting(false);

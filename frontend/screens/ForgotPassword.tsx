@@ -26,7 +26,6 @@ export const changePassword = async (email: string, newPassword: string): Promis
         return response.data;
     } catch (error) {
         const axiosError = error as AxiosError<ApiResponse>;
-        console.error("Error in changePassword:", axiosError.response?.data || axiosError.message);
         if (axiosError.response) {
             const { data } = axiosError.response;
             Toast.show({ type: "error", text1: "Action Failed", text2: data?.message || "An error occurred", position: 'bottom' });
@@ -56,8 +55,7 @@ interface ImageSize {
 }
 
 const getImageSize = (imageSource: ImageSourcePropType): ImageSize => {
-    const { width, height } = Image.resolveAssetSource(imageSource);
-    return { width, height };
+    return { width: 200, height: 200 }; // Simplified for beginner-level code
 };
 
 type RootStackParamList = {
@@ -79,7 +77,6 @@ export default function ForgotPassword(): JSX.Element {
     const handleAction = async (values: ForgotPasswordFormValues, { setSubmitting }: FormikHelpers<ForgotPasswordFormValues>) => {
         try {
             const response = await changePassword(values.email, values.password);
-            console.log("Change Password Response:", response)
     
             if (response?.message === "Password updated successfully") {
                 Toast.show({text1: "Action Successful", text2: "Password updated successfully", type:"success", position: 'bottom'})
@@ -88,7 +85,6 @@ export default function ForgotPassword(): JSX.Element {
                 Toast.show({text1: "Action Failed", text2: response?.message || "An error occurred", type:"error", position: 'bottom'})
             }
         } catch (error) {
-            console.error("Action error:", error)
         }
         setSubmitting(false)
     }     

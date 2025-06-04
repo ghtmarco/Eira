@@ -30,7 +30,6 @@ router.post("/chats", async (req, res) => {
       res.status(201).json({ message: "Chat created successfully", chatId: result.insertedId })
     }
   } catch (error) {
-    console.error("Chat save error:", error)
     res.status(500).json({ message: "Internal Server Error", error: error.message })
   }
 })
@@ -50,7 +49,6 @@ router.get("/chats/user/:userId", async (req, res) => {
 
     res.json(chatDocs)
   } catch (error) {
-    console.error("Chat retrieval error:", error)
     res.status(500).json({ message: "Internal Server Error", error: error.message })
   }
 })
@@ -67,7 +65,6 @@ router.get("/chats/:chatId", async (req, res) => {
     }
     res.json(chatDoc)
   } catch (error) {
-    console.error("Chat retrieval error:", error)
     res.status(500).json({ message: "Internal Server Error", error: error.message })
   }
 })
@@ -96,7 +93,6 @@ router.post("/register", async (req, res) => {
 
     res.status(201).json({ message: "User created", userId: result.insertedId })
   } catch (error) {
-    console.error("Registration error:", error)
     res.status(500).json({ message: "Internal Server Error", error: error.message })
   }
 })
@@ -149,7 +145,6 @@ router.post("/change-password", async (req, res) => {
 
       res.status(200).json({ message: "Password updated successfully" })
   } catch (error) {
-      console.error("Error in /change-password:", error)
       res.status(500).json({ message: "Server error", error: error.message })
   }
 })
@@ -169,7 +164,6 @@ router.delete("/chats/:chatId", async (req, res) => {
     
     res.status(200).json({ message: "Chat deleted successfully" })
   } catch (error) {
-    console.error("Chat deletion error:", error)
     res.status(500).json({ message: "Internal Server Error", error: error.message })
   }
 })

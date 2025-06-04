@@ -154,7 +154,6 @@ const SettingsScreen = (): JSX.Element => {
         visibilityTime: 2000,
       });
     } catch (error) {
-      console.error('Error saving theme preference:', error);
       Toast.show({
         type: 'error',
         text1: 'Theme Change Failed',
@@ -227,7 +226,6 @@ const SettingsScreen = (): JSX.Element => {
             showsVerticalScrollIndicator={false}
           >
             <Animated.View entering={FadeInDown.duration(400).springify()}>
-              {/* Appearance Section */}
               <SettingsSection title="Appearance">
                 <SettingsItem
                   icon={
@@ -256,7 +254,6 @@ const SettingsScreen = (): JSX.Element => {
                 />
               </SettingsSection>
 
-              {/* Support Section */}
               <SettingsSection title="Support">
                 <SettingsItem
                   icon={
@@ -283,7 +280,6 @@ const SettingsScreen = (): JSX.Element => {
                 />
               </SettingsSection>
 
-              {/* Legal Section */}
               <SettingsSection title="Legal">
                 <SettingsItem
                   icon={

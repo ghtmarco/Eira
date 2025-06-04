@@ -13,8 +13,6 @@ import { useTheme } from '../contexts/ThemeContext'
 const SERVER_URL: string = (Constants.expoConfig?.extra?.SERVER_URL as string) || '';
 const PAGE_URL: string = `${SERVER_URL}/users/chats/user`;
 
-console.log('SERVER_URL:', SERVER_URL);
-console.log('PAGE_URL:', PAGE_URL);
 
 interface ApiChatMessage { 
   message: string;
@@ -48,7 +46,6 @@ const HistoryScreen = (): JSX.Element => {
       setChatHistory(data);
     } catch (error) {
       const axiosError = error as AxiosError;
-      console.error("Failed to fetch chat history:", axiosError.message);
       setChatHistory([]);
       Toast.show({
         type: 'error',

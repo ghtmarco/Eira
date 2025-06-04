@@ -28,20 +28,8 @@ export const loginUser = async (email: string, password: string): Promise<LoginA
       const response = await axios.post<LoginApiResponse>(`${PAGE_URL}/login`, { email, password });
       return response.data;
     } catch (error) {
-        const axiosError = error as AxiosError<LoginApiResponse>;
-        if (axiosError.response) {
-            const { status, data } = axiosError.response;
-            if (status === 401) {
-              if (data?.message === "User Does Not Exist") {
-                  Toast.show({type: "error", text1: "Login Failed", text2: "User doesn\'t exist", position: 'bottom'});
-              } else if (data?.message === "Incorrect Password") {
-                  Toast.show({type: "error", text1: "Login Failed", text2: "Incorrect password", position: 'bottom'});
-              }
-            }
-            return data || { message: "An unknown error occurred" };
-        }
-        Toast.show({type: "error", text1: "Login Failed", text2: "Network error or server unavailable", position: 'bottom'});
-        return { message: "Network error or server unavailable" };
+        Toast.show({type: "error", text1: "Login Failed", text2: "An error occurred", position: 'bottom'});
+        return { message: "An error occurred" };
     }
 };
 
@@ -61,8 +49,7 @@ interface ImageSize {
 }
 
 const getImageSize = (imageSource: ImageSourcePropType): ImageSize => {
-    const { width, height } = Image.resolveAssetSource(imageSource);
-    return { width, height };
+    return { width: 200, height: 200 };
 };
 
 type RootStackParamList = {

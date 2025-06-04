@@ -3,7 +3,6 @@ import { ColorValue } from 'react-native';
 import { StatusBarStyle } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Theme definitions
 export const LIGHT_THEME = {
   primary: '#007AFF',
   secondary: '#FF3B30',
@@ -89,12 +88,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [theme, setTheme] = useState<Theme>(LIGHT_THEME);
 
-  // Load theme preference on app start
   useEffect(() => {
     loadThemePreference();
   }, []);
 
-  // Update theme when isDarkMode changes
   useEffect(() => {
     setTheme(isDarkMode ? DARK_THEME : LIGHT_THEME);
   }, [isDarkMode]);
@@ -107,7 +104,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         setIsDarkMode(isDark);
       }
     } catch (error) {
-      console.error('Error loading theme preference:', error);
     }
   };
 
@@ -117,7 +113,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       setIsDarkMode(newTheme);
       await AsyncStorage.setItem('isDarkMode', JSON.stringify(newTheme));
     } catch (error) {
-      console.error('Error saving theme preference:', error);
     }
   };
 

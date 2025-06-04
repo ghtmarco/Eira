@@ -7,30 +7,32 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { StackNavigationProp } from '@react-navigation/stack'
 import Markdown from 'react-native-markdown-display'
 import Svg, { Path } from "react-native-svg"
-import Animated, { FadeInDown, FadeInUp, SlideInLeft, SlideInRight } from 'react-native-reanimated'
 import axios, { AxiosError } from "axios"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import Toast from 'react-native-toast-message'
 import Constants from 'expo-constants'
 import { fontStyle } from '../assets/fonts/fontstyle'
 import { useTheme } from '../contexts/ThemeContext'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
 const { width: screenWidth } = Dimensions.get('window');
 
-// Database server URL from .env
 const SERVER_URL: string = (Constants.expoConfig?.extra?.SERVER_URL as string) || '';
 const PAGE_URL: string = `${SERVER_URL}/users/chats`;
-const AI_URL: string = `${SERVER_URL}/api/ai/generate-response`;
+const GEMINI_API_KEY: string = (Constants.expoConfig?.extra?.API_KEY as string) || '';
+const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
 
-// Interfaces
+
 interface ChatMessage {
   text: string;
   user: boolean;
+  timestamp?: number;
 }
 
 interface ApiChatMessage {
   message: string;
   sender: "user" | "bot";
+  timestamp?: Date;
 }
 
 interface ChatDocument {
@@ -44,15 +46,9 @@ interface ChatPostResponse {
   message?: string;
 }
 
-interface AIResponse {
-  generatedText?: string;
-  success: boolean;
-  message?: string;
-  error?: string;
-}
-
 interface ChatBubbleProps {
   item: ChatMessage;
+  index: number;
 }
 
 type RootStackParamList = {
@@ -60,121 +56,106 @@ type RootStackParamList = {
   History: undefined;
 };
 
-const ChatBubble: React.FC<ChatBubbleProps> = ({ item }) => {
+const ChatBubble: React.FC<ChatBubbleProps> = ({ item, index }) => {
   const { theme, isDarkMode } = useTheme();
   
-  // Calculate dynamic width based on content length and screen size
-  const maxBubbleWidth = screenWidth * 0.8; // 80% of screen width
-  const minBubbleWidth = screenWidth * 0.3; // 30% of screen width
+  const textLength = item.text.length;
+  const minWidth = Math.min(screenWidth * 0.3, 120);
+  const maxWidth = screenWidth * 0.85;
   
+  let bubbleWidth = textLength < 50 ? minWidth : 
+                   textLength < 150 ? screenWidth * 0.6 : 
+                   maxWidth;
+
   return (
-    <Animated.View
+    <View
       style={{
-        marginVertical: 6,
+        marginVertical: 4,
         paddingHorizontal: 16,
         alignSelf: item.user ? 'flex-end' : 'flex-start',
-        maxWidth: maxBubbleWidth,
-        minWidth: minBubbleWidth,
+        maxWidth: maxWidth,
+        width: 'auto',
       }}
-      entering={
-        item.user
-          ? SlideInRight.duration(350).springify().damping(12)
-          : SlideInLeft.duration(350).springify().damping(12)
-      }
     >
       <View
         style={{
           paddingHorizontal: 16,
           paddingVertical: 12,
-          borderRadius: 20,
-          borderTopLeftRadius: item.user ? 20 : 6,
-          borderTopRightRadius: item.user ? 6 : 20,
-          backgroundColor: item.user ? 'transparent' : theme.bubble.bot,
-          shadowColor: theme.shadow.color,
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: theme.shadow.opacity,
-          shadowRadius: 4,
-          elevation: 3,
+          borderRadius: 10,
+          backgroundColor: item.user ? theme.primary : theme.bubble?.bot || theme.card,
           overflow: 'hidden',
+          alignSelf: item.user ? 'flex-end' : 'flex-start',
+          maxWidth: '100%',
         }}
       >
-        {item.user && (
-          <LinearGradient
-            colors={isDarkMode ? ['#0A84FF', '#1E90FF'] : ['#0A84FF', '#007AFF']}
+        <View style={{ flexShrink: 1 }}>
+          <Markdown
             style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              top: 0,
-              bottom: 0,
+              body: {
+                color: item.user ? '#FFFFFF' : theme.text,
+                fontSize: 15.5,
+                lineHeight: 22,
+                fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+                fontWeight: '400',
+                marginVertical: 0,
+                flexWrap: 'wrap',
+              },
+              strong: {
+                fontWeight: '600',
+                color: item.user ? '#FFFFFF' : theme.text,
+              },
+              paragraph: {
+                marginVertical: 2,
+                color: item.user ? '#FFFFFF' : theme.text,
+                flexWrap: 'wrap',
+              },
+              text: {
+                color: item.user ? '#FFFFFF' : theme.text,
+                flexWrap: 'wrap',
+              },
+              link: {
+                color: item.user ? '#E0F0FF' : theme.primary,
+                textDecorationLine: 'underline',
+              },
+              code_block: {
+                backgroundColor: item.user 
+                  ? 'rgba(255,255,255,0.15)' 
+                  : (isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'),
+                padding: 10,
+                borderRadius: 8,
+                marginVertical: 6,
+                fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+                fontSize: 14,
+              },
+              code_inline: {
+                backgroundColor: item.user 
+                  ? 'rgba(255,255,255,0.15)' 
+                  : (isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'),
+                borderRadius: 4,
+                paddingHorizontal: 6,
+                paddingVertical: 2,
+                fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+                color: item.user ? '#FFFFFF' : theme.text,
+                fontSize: 14,
+              },
+              bullet_list: {
+                marginVertical: 6,
+              },
+              ordered_list: {
+                marginVertical: 6,
+              },
+              list_item: {
+                marginVertical: 3,
+                color: item.user ? '#FFFFFF' : theme.text,
+                flexWrap: 'wrap',
+              }
             }}
-          />
-        )}
-        <Markdown
-          style={{
-            body: {
-              color: item.user ? '#FFFFFF' : theme.text,
-              fontSize: 15.5,
-              lineHeight: 22,
-              fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
-              fontWeight: '400',
-              marginVertical: 0,
-            },
-            strong: {
-              fontWeight: '600',
-              color: item.user ? '#FFFFFF' : theme.text,
-            },
-            paragraph: {
-              marginVertical: 2,
-              color: item.user ? '#FFFFFF' : theme.text,
-              flexWrap: 'wrap',
-            },
-            text: {
-              color: item.user ? '#FFFFFF' : theme.text,
-              flexWrap: 'wrap',
-            },
-            link: {
-              color: item.user ? '#E0F0FF' : theme.primary,
-              textDecorationLine: 'underline',
-            },
-            code_block: {
-              backgroundColor: item.user 
-                ? 'rgba(255,255,255,0.15)' 
-                : (isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'),
-              padding: 10,
-              borderRadius: 8,
-              marginVertical: 6,
-              fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-              fontSize: 14,
-            },
-            code_inline: {
-              backgroundColor: item.user 
-                ? 'rgba(255,255,255,0.15)' 
-                : (isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'),
-              borderRadius: 4,
-              paddingHorizontal: 6,
-              paddingVertical: 2,
-              fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-              color: item.user ? '#FFFFFF' : theme.text,
-              fontSize: 14,
-            },
-            bullet_list: {
-              marginVertical: 6,
-            },
-            ordered_list: {
-              marginVertical: 6,
-            },
-            list_item: {
-              marginVertical: 3,
-              color: item.user ? '#FFFFFF' : theme.text,
-              flexWrap: 'wrap',
-            }
-          }}
-        >
-          {item.text}
-        </Markdown>
+          >
+            {item.text}
+          </Markdown>
+        </View>
       </View>
-    </Animated.View>
+    </View>
   );
 };
 
@@ -188,8 +169,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({ showWelcome }) => {
   return (
     <>
       {showWelcome && (
-        <Animated.View
-          entering={FadeInUp.delay(200).duration(500).springify().damping(14)}
+        <View
           style={{
             alignSelf: 'center',
             paddingVertical: 36,
@@ -200,10 +180,6 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({ showWelcome }) => {
             justifyContent: 'center',
             backgroundColor: theme.card,
             borderRadius: 24,
-            shadowColor: theme.shadow.color,
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: theme.shadow.opacity,
-            shadowRadius: 8,
             width: '86%',
             elevation: 3,
           }}
@@ -215,10 +191,6 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({ showWelcome }) => {
               height: 80, 
               borderRadius: 40, 
               marginBottom: 20,
-              shadowColor: theme.shadow.color,
-              shadowOffset: { width: 0, height: 3 },
-              shadowOpacity: 0.1,
-              shadowRadius: 5,
             }}
           />
           <Text style={[{ 
@@ -242,7 +214,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({ showWelcome }) => {
           }}>
             How can I assist you today? Ask me anything and I'll be happy to help!
           </Text>
-        </Animated.View>
+        </View>
       )}
     </>
   );
@@ -269,7 +241,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({ userInput, setUserInp
         borderTopColor: theme.border,
         paddingBottom: Platform.OS === "ios" ? 4 : 2,
       }}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 50}
     >
       <View style={{ 
         flexDirection: 'row', 
@@ -278,9 +250,8 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({ userInput, setUserInp
         padding: 12,
         paddingHorizontal: 16,
       }}>
-        <Animated.View
+        <View
           style={{ flex: 1, marginRight: 10 }}
-          entering={FadeInDown.duration(400).springify()}
         >
           <TextInput
             placeholder={aiProcessing ? "Eira is thinking..." : "Message Eira..."}
@@ -303,10 +274,6 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({ userInput, setUserInp
               fontSize: 16,
               fontWeight: '400',
               letterSpacing: -0.2,
-              shadowColor: theme.shadow.color,
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: isDisabled ? 0.03 : theme.shadow.opacity,
-              shadowRadius: 4,
               elevation: 2,
               minHeight: 50,
               maxHeight: 120,
@@ -316,9 +283,9 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({ userInput, setUserInp
             multiline={true}
             maxLength={2000}
           />
-        </Animated.View>
+        </View>
 
-        <Animated.View entering={FadeInDown.duration(500).springify()}>
+        <View>
           <TouchableOpacity 
             onPress={sendMessage} 
             disabled={isDisabled || !userInput.trim()} 
@@ -332,10 +299,6 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({ userInput, setUserInp
                 borderRadius: 25,
                 justifyContent: 'center',
                 alignItems: 'center',
-                shadowColor: (isDisabled || !userInput.trim()) ? theme.textSecondary : theme.primary,
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: (isDisabled || !userInput.trim()) ? 0.2 : 0.4,
-                shadowRadius: 3,
                 opacity: (isDisabled || !userInput.trim()) ? 0.6 : 1,
                 elevation: (isDisabled || !userInput.trim()) ? 1 : 3,
               }}
@@ -352,7 +315,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({ userInput, setUserInp
               )}
             </View>
           </TouchableOpacity>
-        </Animated.View>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -368,14 +331,7 @@ const HomeScreen = (): JSX.Element => {
   const [userInput, setUserInput] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [aiProcessing, setAiProcessing] = useState<boolean>(false);
-  const [key, setKey] = useState<number>(0);
   const flatListRef = useRef<FlatList<ChatMessage> | null>(null);
-
-  useFocusEffect(
-    useCallback(() => {
-      setKey(prevKey => prevKey + 1)
-    }, [])
-  )
 
   useEffect(() => {
     const paramsChatId = route.params?.chatId;
@@ -402,9 +358,10 @@ const HomeScreen = (): JSX.Element => {
           const response = await axios.get<ChatDocument>(`${PAGE_URL}/${chatId}`);
           const chatDoc = response.data;
           if (chatDoc && chatDoc.messages) {
-            const fetchedMessages: ChatMessage[] = chatDoc.messages.map((msg: ApiChatMessage) => ({
+            const fetchedMessages: ChatMessage[] = chatDoc.messages.map((msg: ApiChatMessage, index: number) => ({
               text: msg.message,
               user: msg.sender === "user",
+              timestamp: Date.now() + index,
             }));
             setMessages(fetchedMessages);
           }
@@ -414,7 +371,6 @@ const HomeScreen = (): JSX.Element => {
             setChatId(null);
             setMessages([]);
           } else {
-            console.error("Fetch chat error:", error);
             Toast.show({ 
               type: 'error', 
               text1: 'Couldn\'t Load Chat', 
@@ -440,6 +396,34 @@ const HomeScreen = (): JSX.Element => {
     }
   }, [messages]);
 
+  const callGeminiAPI = async (prompt: string): Promise<string> => {
+    if (!genAI) {
+      throw new Error('Gemini AI not configured');
+    }
+
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-001" });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      return text || "I apologize, but I couldn't generate a response. Please try again.";
+      
+    } catch (error: any) {
+      if (error.message?.includes('API_KEY')) {
+        throw new Error('API key configuration error. Please check your Gemini API key.');
+      } else if (error.message?.includes('quota')) {
+        throw new Error('API quota exceeded. Please try again later.');
+      } else if (error.message?.includes('safety')) {
+        throw new Error('Content filtered for safety reasons.');
+      } else if (error.message?.includes('PERMISSION_DENIED')) {
+        throw new Error('API key does not have permission to use this service.');
+      } else {
+        throw new Error(`Gemini API error: ${error.message || 'Unknown error'}`);
+      }
+    }
+  };
+
   const sendMessage = async () => {
     if (!userInput.trim()) return
     const newPrompt = userInput.trim()
@@ -448,25 +432,42 @@ const HomeScreen = (): JSX.Element => {
     
     try {
       const userId = await AsyncStorage.getItem("id");
-      setMessages(prev => [...prev, { text: newPrompt, user: true }]);
+      const newMessage: ChatMessage = { 
+        text: newPrompt, 
+        user: true, 
+        timestamp: Date.now() 
+      };
+      setMessages(prev => [...prev, newMessage]);
       
-      // Save user message to database
-      const userResponse = await axios.post<ChatPostResponse>(PAGE_URL, {
-        userId,
-        chatId,
-        message: newPrompt,
-        sender: "user"
-      })
-      
-      if (!chatId && userResponse.data.chatId) {
-        setChatId(userResponse.data.chatId)
+      let currentChatId = chatId; // Use a local variable for chatId during this flow
+
+      // Post user message
+      try {
+        const userResponse = await axios.post<ChatPostResponse>(PAGE_URL, {
+          userId,
+          chatId: currentChatId, // Use currentChatId
+          message: newPrompt,
+          sender: "user"
+        })
+        
+        if (!currentChatId && userResponse.data.chatId) {
+          currentChatId = userResponse.data.chatId; // Update local variable
+          // DO NOT setChatId here yet to avoid premature re-fetch
+        }
+      } catch (dbError) {
+        // Handle error for user message post
+        Toast.show({ 
+          type: 'error', 
+          text1: 'Database Error', 
+          text2: 'Failed to save user message to database.', 
+          position: 'bottom',
+          visibilityTime: 3000,
+        });
       }
 
-      const currentMessages = [...messages, { text: newPrompt, user: true }];
-      const historyForBackend = currentMessages.slice(0, -1);
-      
       let fullPrompt = newPrompt;
-      if (historyForBackend.length === 0) {
+      // Check messages.length after adding the user's message
+      if (messages.length === 0) { 
         fullPrompt = `You are Eira, a supportive AI companion for mental well-being. Your goal is to offer empathetic conversations and general guidance. You should:
 
 - Be empathetic, understanding, and non-judgmental
@@ -478,83 +479,100 @@ const HomeScreen = (): JSX.Element => {
 - Provide practical coping strategies when appropriate
 
 Please respond to: ${newPrompt}`;
+      } else {
+        fullPrompt = `User: ${newPrompt}`;
       }
 
       setAiProcessing(true);
       
-      const thinkingMessage = { text: "✨ Eira is thinking...", user: false };
+      const thinkingMessage: ChatMessage = { 
+        text: "Eira is thinking...", 
+        user: false, 
+        timestamp: Date.now() + 1 
+      };
       setMessages(prev => [...prev, thinkingMessage]);
       
+      let text = '';
+      
       try {
-        // Use backend AI route instead of calling Gemini API directly
-        const aiApiResponse = await axios.post<AIResponse>(
-          AI_URL,
-          {
-            prompt: fullPrompt,
-            chatId: chatId || userResponse.data.chatId,
-            history: historyForBackend
-          },
-          {
-            timeout: 45000,
-            headers: {
-              'Content-Type': 'application/json',
-            }
-          }
-        );
+        text = await callGeminiAPI(fullPrompt);
         
-        if (!aiApiResponse.data.success || !aiApiResponse.data.generatedText) {
-          throw new Error(aiApiResponse.data.message || 'AI service returned empty response');
-        }
-        
-        var text = aiApiResponse.data.generatedText;
-        
-      } catch (aiError) {
-        console.warn("Backend AI API error:", aiError);
-        
-        const error = aiError as AxiosError<AIResponse>;
-        const isNetworkError = error.code === 'ECONNREFUSED' || 
-                              error.code === 'ENOTFOUND' || 
-                              error.code === 'ETIMEDOUT' ||
-                              (error.response?.status && error.response.status >= 500);
-        
-        if (isNetworkError) {
-          text = "I'm currently experiencing some technical difficulties connecting to my AI system. Your message is important to me, and I want to help. While I work to resolve this issue, please remember that if you're dealing with urgent mental health concerns, consider reaching out to a mental health professional or crisis hotline. Please try sending your message again in a moment.";
+      } catch (aiError: any) {
+        if (aiError.message.includes('API key')) {
+          text = "I'm experiencing a configuration issue with my AI service. Please check that the API key is properly set up.";
+          
+          Toast.show({
+            type: 'error',
+            text1: 'Configuration Error',
+            text2: 'Please check your Gemini API key configuration.',
+            position: 'bottom',
+            visibilityTime: 5000,
+          });
+        } else if (aiError.message.includes('quota')) {
+          text = "I'm currently experiencing high demand and have reached my usage limit. Please try again in a little while.";
+          
+          Toast.show({
+            type: 'info',
+            text1: 'API Limit Reached',
+            text2: 'Please try again later.',
+            position: 'bottom',
+            visibilityTime: 4000,
+          });
         } else {
-          text = "I understand you're reaching out, and I appreciate you sharing with me. I'm experiencing some technical challenges right now, but I'm here to support you. If you're dealing with immediate mental health concerns, please don't hesitate to contact a mental health professional or crisis support service. Let's try continuing our conversation in a moment.";
+          text = "I'm experiencing some technical difficulties right now, but I'm here to support you. If you're dealing with immediate mental health concerns, please don't hesitate to contact a mental health professional or crisis support service.";
+          
+          Toast.show({
+            type: 'info',
+            text1: 'AI Service Notice',
+            text2: 'Experiencing technical difficulties.',
+            position: 'bottom',
+            visibilityTime: 4000,
+          });
         }
-        
-        Toast.show({
-          type: 'info',
-          text1: 'AI Service Notice',
-          text2: 'Using fallback response due to technical issues.',
-          position: 'bottom',
-          visibilityTime: 4000,
-        });
       }
 
       setAiProcessing(false);
 
+      const aiMessage: ChatMessage = { 
+        text, 
+        user: false, 
+        timestamp: Date.now() + 2 
+      };
+
       setMessages(prev => {
         const withoutThinking = prev.slice(0, -1);
-        return [...withoutThinking, { text, user: false }];
+        return [...withoutThinking, aiMessage];
       });
 
-      // Save AI response to database
-      await axios.post<ChatPostResponse>(PAGE_URL, {
-        userId,
-        chatId: chatId || userResponse.data.chatId,
-        message: text,
-        sender: "bot"
-      })
+      // Post bot message
+      try {
+        await axios.post<ChatPostResponse>(PAGE_URL, {
+          userId,
+          chatId: currentChatId, // Use the potentially new currentChatId
+          message: text,
+          sender: "bot"
+        })
+      } catch (dbError) {
+        Toast.show({ 
+          type: 'error', 
+          text1: 'Database Error', 
+          text2: 'Failed to save bot message to database.', 
+          position: 'bottom',
+          visibilityTime: 3000,
+        });
+      }
+
+      // ONLY setChatId AFTER both messages are processed and potentially saved
+      if (currentChatId && currentChatId !== chatId) {
+        setChatId(currentChatId);
+      }
 
     } catch (err) {
-      console.error("General Error:", err);
       setAiProcessing(false);
       
-      // Remove thinking message if it exists
       setMessages(prev => {
         const lastMessage = prev[prev.length - 1];
-        if (lastMessage && lastMessage.text === "✨ Eira is thinking...") {
+        if (lastMessage && lastMessage.text === "Eira is thinking...") {
           return prev.slice(0, -1);
         }
         return prev;
@@ -573,7 +591,6 @@ Please respond to: ${newPrompt}`;
   }
 
   const handleNewChat = () => {
-    setKey(prev => prev + 1)
     setChatId(null)
     setMessages([])
     navigation.setParams({ chatId: null });
@@ -585,6 +602,10 @@ Please respond to: ${newPrompt}`;
       visibilityTime: 2000,
     });
   };
+
+  const renderChatBubble: ListRenderItem<ChatMessage> = ({ item, index }) => (
+    <ChatBubble item={item} index={index} />
+  );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
@@ -600,39 +621,15 @@ Please respond to: ${newPrompt}`;
         end={{ x: 1, y: 1 }}
       >
         <GestureHandlerRootView style={{ flex: 1 }}>
-          <View key={key} style={{ flex: 1 }}>
-            
-            <ChatHeader
-              showWelcome={!loading && !chatId && messages.length === 0}
-            />
-            
+          <View style={{ flex: 1 }}>
             <FlatList            
-              ListHeaderComponent={() => {
-                if (loading && chatId && messages.length === 0) {
-                  return (
-                    <View style={{ 
-                      height: 300, 
-                      justifyContent: 'center', 
-                      alignItems: 'center' 
-                    }}>
-                      <ActivityIndicator size="large" color={theme.primary} />
-                      <Text style={{ 
-                        marginTop: 16, 
-                        color: theme.textSecondary,
-                        fontSize: 14,
-                        fontWeight: '400'
-                      }}>
-                        Loading conversation...
-                      </Text>
-                    </View>
-                  );
-                }
-                return null;
-              }}
+              ListHeaderComponent={() => (
+                messages.length === 0 ? <ChatHeader showWelcome={true} /> : null
+              )}
               data={messages}
               ref={flatListRef}
-              renderItem={({ item }) => <ChatBubble item={item} />}
-              keyExtractor={(item, index) => index.toString()}
+              renderItem={renderChatBubble}
+              keyExtractor={(item, index) => `${item.timestamp || index}-${index}`}
               style={{ 
                 flex: 1, 
                 backgroundColor: 'transparent', 
@@ -645,15 +642,6 @@ Please respond to: ${newPrompt}`;
                 flexGrow: 1,
               }}
               showsVerticalScrollIndicator={false}
-              initialNumToRender={15}
-              maxToRenderPerBatch={10}
-              windowSize={15}
-              removeClippedSubviews={true}
-              getItemLayout={(data, index) => ({
-                length: 80, // Approximate height
-                offset: 80 * index,
-                index,
-              })}
             />
 
             <MessageInputBar
