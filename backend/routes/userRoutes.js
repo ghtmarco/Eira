@@ -154,4 +154,24 @@ router.post("/change-password", async (req, res) => {
   }
 })
 
+router.delete("/chats/:chatId", async (req, res) => {
+  try {
+    const { chatId } = req.params
+    const client = await connectToDB()
+    const db = client.db("soft_eng")
+    const chatsCollection = db.collection("chats")
+    
+    const result = await chatsCollection.deleteOne({ _id: new ObjectId(chatId) })
+    
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: "Chat not found" })
+    }
+    
+    res.status(200).json({ message: "Chat deleted successfully" })
+  } catch (error) {
+    console.error("Chat deletion error:", error)
+    res.status(500).json({ message: "Internal Server Error", error: error.message })
+  }
+})
+
 module.exports = router
