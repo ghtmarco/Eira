@@ -12,30 +12,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 import Toast from 'react-native-toast-message'
 import Constants from 'expo-constants'
 import { fontStyle } from '../assets/fonts/fontstyle'
+import { useTheme } from '../contexts/ThemeContext'
 
 const SERVER_URL: string = (Constants.expoConfig?.extra?.SERVER_URL as string) || '';
 const PAGE_URL: string = `${SERVER_URL}/users/chats`;
-
-// Theme colors
-const THEME = {
-  primary: '#007AFF',  // iOS blue
-  secondary: '#FF3B30', // iOS red
-  tertiary: '#34C759', // iOS green
-  background: '#F7F7F7', // iOS light background
-  card: '#FFFFFF',
-  text: '#111111', // Darker text for better contrast
-  textSecondary: '#8E8E93', // iOS secondary text
-  placeholder: '#C7C7CC', // iOS placeholder text
-  bubble: {
-    user: '#007AFF', // iOS blue
-    bot: '#F2F2F7',  // iOS light gray
-  },
-  navbar: '#FFFFFF',
-  shadow: {
-    color: '#000000',
-    opacity: 0.08,
-  }
-};
 
 // Interfaces
 interface ChatMessage {
@@ -68,98 +48,112 @@ type RootStackParamList = {
   History: undefined;
 };
 
-const ChatBubble: React.FC<ChatBubbleProps> = ({ item }) => (
-  <Animated.View
-    style={[
-      {
-        marginVertical: 8,
-        paddingHorizontal: 16,
-        paddingVertical: 12, 
-        borderRadius: 18,
-        borderTopLeftRadius: item.user ? 18 : 4,
-        borderTopRightRadius: item.user ? 4 : 18,
-        maxWidth: '80%',
-        alignSelf: item.user ? 'flex-end' : 'flex-start',
-        backgroundColor: item.user ? 'transparent' : THEME.bubble.bot,
-        shadowColor: THEME.shadow.color,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        overflow: 'hidden',
-      },
-    ]}
-    entering={
-      item.user
-        ? SlideInRight.duration(350).springify().damping(12)
-        : SlideInLeft.duration(350).springify().damping(12)
-    }
-  >
-    {item.user && (
-      <LinearGradient
-        colors={['#0A84FF', '#007AFF']}
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          top: 0,
-          bottom: 0,
-        }}
-      />
-    )}
-    <Markdown
-      style={{
-        body: {
-          color: item.user ? '#FFFFFF' : THEME.text,
-          fontSize: 15.5,
-          lineHeight: 21,
-          fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
-          fontWeight: '400',
+const ChatBubble: React.FC<ChatBubbleProps> = ({ item }) => {
+  const { theme, isDarkMode } = useTheme();
+  
+  return (
+    <Animated.View
+      style={[
+        {
+          marginVertical: 8,
+          paddingHorizontal: 16,
+          paddingVertical: 12, 
+          borderRadius: 18,
+          borderTopLeftRadius: item.user ? 18 : 4,
+          borderTopRightRadius: item.user ? 4 : 18,
+          maxWidth: '80%',
+          alignSelf: item.user ? 'flex-end' : 'flex-start',
+          backgroundColor: item.user ? 'transparent' : theme.bubble.bot,
+          shadowColor: theme.shadow.color,
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: theme.shadow.opacity,
+          shadowRadius: 2,
+          overflow: 'hidden',
         },
-        strong: {
-          fontWeight: '600',
-        },
-        paragraph: {
-          marginVertical: 2,
-        },
-        link: {
-          color: item.user ? '#E0F0FF' : '#007AFF',
-          textDecorationLine: 'underline',
-        },
-        code_block: {
-          backgroundColor: item.user ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.04)',
-          padding: 10,
-          borderRadius: 8,
-          marginVertical: 6,
-          fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-        },
-        code_inline: {
-          backgroundColor: item.user ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.04)',
-          borderRadius: 4,
-          paddingHorizontal: 4,
-          paddingVertical: 1,
-          fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-        },
-        bullet_list: {
-          marginVertical: 6,
-        },
-        ordered_list: {
-          marginVertical: 6,
-        },
-        list_item: {
-          marginVertical: 3,
-        }
-      }}
+      ]}
+      entering={
+        item.user
+          ? SlideInRight.duration(350).springify().damping(12)
+          : SlideInLeft.duration(350).springify().damping(12)
+      }
     >
-      {item.text}
-    </Markdown>
-  </Animated.View>
-);
+      {item.user && (
+        <LinearGradient
+          colors={isDarkMode ? ['#0A84FF', '#1E90FF'] : ['#0A84FF', '#007AFF']}
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
+          }}
+        />
+      )}
+      <Markdown
+        style={{
+          body: {
+            color: item.user ? '#FFFFFF' : theme.text,
+            fontSize: 15.5,
+            lineHeight: 21,
+            fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+            fontWeight: '400',
+          },
+          strong: {
+            fontWeight: '600',
+            color: item.user ? '#FFFFFF' : theme.text,
+          },
+          paragraph: {
+            marginVertical: 2,
+            color: item.user ? '#FFFFFF' : theme.text,
+          },
+          link: {
+            color: item.user ? '#E0F0FF' : theme.primary,
+            textDecorationLine: 'underline',
+          },
+          code_block: {
+            backgroundColor: item.user 
+              ? 'rgba(255,255,255,0.15)' 
+              : (isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.04)'),
+            padding: 10,
+            borderRadius: 8,
+            marginVertical: 6,
+            fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+          },
+          code_inline: {
+            backgroundColor: item.user 
+              ? 'rgba(255,255,255,0.15)' 
+              : (isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.04)'),
+            borderRadius: 4,
+            paddingHorizontal: 4,
+            paddingVertical: 1,
+            fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+            color: item.user ? '#FFFFFF' : theme.text,
+          },
+          bullet_list: {
+            marginVertical: 6,
+          },
+          ordered_list: {
+            marginVertical: 6,
+          },
+          list_item: {
+            marginVertical: 3,
+            color: item.user ? '#FFFFFF' : theme.text,
+          }
+        }}
+      >
+        {item.text}
+      </Markdown>
+    </Animated.View>
+  );
+};
 
 interface ChatHeaderProps {
   showWelcome: boolean;
 }
 
 const ChatHeader: React.FC<ChatHeaderProps> = ({ showWelcome }) => {
+  const { theme } = useTheme();
+  
   return (
     <>
       {showWelcome && (
@@ -173,13 +167,14 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({ showWelcome }) => {
             marginHorizontal: 20,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: '#FFFFFF',
+            backgroundColor: theme.card,
             borderRadius: 24,
-            shadowColor: '#000',
+            shadowColor: theme.shadow.color,
             shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.05,
+            shadowOpacity: theme.shadow.opacity,
             shadowRadius: 8,
             width: '86%',
+            elevation: 3, // For Android shadow
           }}
         >
           <Image
@@ -189,7 +184,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({ showWelcome }) => {
               height: 80, 
               borderRadius: 40, 
               marginBottom: 20,
-              shadowColor: THEME.shadow.color,
+              shadowColor: theme.shadow.color,
               shadowOffset: { width: 0, height: 3 },
               shadowOpacity: 0.1,
               shadowRadius: 5,
@@ -199,7 +194,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({ showWelcome }) => {
             fontSize: 26, 
             fontWeight: '600', 
             textAlign: 'center',
-            color: '#000000',
+            color: theme.text,
             marginBottom: 10,
             letterSpacing: -0.5,
           }, fontStyle.text]}>
@@ -207,7 +202,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({ showWelcome }) => {
           </Text>
           <Text style={{
             fontSize: 16,
-            color: THEME.textSecondary,
+            color: theme.textSecondary,
             textAlign: 'center',
             lineHeight: 24,
             fontWeight: '400',
@@ -231,14 +226,16 @@ interface MessageInputBarProps {
 }
 
 const MessageInputBar: React.FC<MessageInputBarProps> = ({ userInput, setUserInput, sendMessage, loading, aiProcessing }) => {
+  const { theme, isDarkMode } = useTheme();
   const isDisabled = loading || aiProcessing;
+  
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ 
-        backgroundColor: 'rgba(255,255,255,0.95)', 
+        backgroundColor: isDarkMode ? `${theme.card}F0` : `${theme.card}F5`, 
         borderTopWidth: 0.5, 
-        borderTopColor: 'rgba(0,0,0,0.1)',
+        borderTopColor: theme.border,
         paddingBottom: Platform.OS === "ios" ? 4 : 2,
       }}
       keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
@@ -262,23 +259,27 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({ userInput, setUserInp
             editable={!isDisabled}
             style={{
               borderWidth: 1.5,
-              borderColor: isDisabled ? 'rgba(0,0,0,0.08)' : 'rgba(0,0,0,0.15)',
+              borderColor: isDisabled 
+                ? theme.border 
+                : (isDarkMode ? theme.border : 'rgba(0,0,0,0.15)'),
               borderRadius: 25,
               paddingVertical: Platform.OS === "ios" ? 14 : 12,
               paddingHorizontal: 18,
-              color: isDisabled ? THEME.textSecondary : THEME.text,
-              backgroundColor: isDisabled ? 'rgba(242,242,247,0.9)' : THEME.card,
+              color: isDisabled ? theme.textSecondary : theme.text,
+              backgroundColor: isDisabled 
+                ? (isDarkMode ? theme.background : 'rgba(242,242,247,0.9)') 
+                : theme.card,
               fontSize: 16,
               fontWeight: '400',
               letterSpacing: -0.2,
-              shadowColor: THEME.shadow.color,
+              shadowColor: theme.shadow.color,
               shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: isDisabled ? 0.03 : 0.06,
+              shadowOpacity: isDisabled ? 0.03 : theme.shadow.opacity,
               shadowRadius: 4,
-              elevation: 2, // For Android shadow
-              minHeight: 50, // Ensure consistent height
+              elevation: 2,
+              minHeight: 50,
             }}
-            placeholderTextColor={THEME.placeholder}
+            placeholderTextColor={theme.placeholder}
             numberOfLines={1}
             multiline={true}
             maxLength={500}
@@ -293,18 +294,19 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({ userInput, setUserInp
           >
             <View
               style={{
-                backgroundColor: isDisabled ? THEME.textSecondary : THEME.primary,
+                backgroundColor: isDisabled ? theme.textSecondary : theme.primary,
                 height: 50,
                 width: 50,
                 borderRadius: 25,
                 justifyContent: 'center',
                 alignItems: 'center',
-                shadowColor: isDisabled ? THEME.textSecondary : THEME.primary,
+                shadowColor: isDisabled ? theme.textSecondary : theme.primary,
                 shadowOffset: { width: 0, height: 2 },
                 shadowOpacity: isDisabled ? 0.2 : 0.4,
                 shadowRadius: 3,
                 opacity: isDisabled ? 0.7 : 1,
-                transform: [{ rotate: '0deg' }], // For smooth animation
+                transform: [{ rotate: '0deg' }],
+                elevation: isDisabled ? 1 : 3,
               }}
             >
               {(loading || aiProcessing) ? (
@@ -326,6 +328,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({ userInput, setUserInp
 };
 
 const HomeScreen = (): JSX.Element => {
+  const { theme, isDarkMode } = useTheme();
   const route = useRoute<RouteProp<RootStackParamList, 'Home'>>();
   const initialChatId = route.params?.chatId || null;
   const [chatId, setChatId] = useState<string | null>(initialChatId);
@@ -424,11 +427,9 @@ const HomeScreen = (): JSX.Element => {
         setChatId(userResponse.data.chatId)
       }
 
-      // Prepare conversation history for the AI backend
       const currentMessages = [...messages, { text: newPrompt, user: true }];
-      const historyForBackend = currentMessages.slice(0, -1); // Exclude the current message
+      const historyForBackend = currentMessages.slice(0, -1);
       
-      // Add system instruction as the first message if this is a new conversation
       let fullPrompt = newPrompt;
       if (historyForBackend.length === 0) {
         fullPrompt = `You are Eira, a supportive AI companion for mental well-being. Your goal is to offer empathetic conversations and general guidance. You should:
@@ -446,10 +447,8 @@ Please respond to: ${newPrompt}`;
 
       let text: string;
       
-      // Show AI processing indicator
       setAiProcessing(true);
       
-      // Add a temporary "AI is thinking" message
       const thinkingMessage = { text: "✨ Eira is thinking...", user: false };
       setMessages(prev => [...prev, thinkingMessage]);
       
@@ -462,7 +461,7 @@ Please respond to: ${newPrompt}`;
             history: historyForBackend
           },
           {
-            timeout: 30000, // 30 second timeout
+            timeout: 30000,
             headers: {
               'Content-Type': 'application/json',
             }
@@ -477,7 +476,6 @@ Please respond to: ${newPrompt}`;
       } catch (aiError) {
         console.warn("AI API error:", aiError);
         
-        // Check if it's a network/server error
         const error = aiError as AxiosError;
         const isNetworkError = error.code === 'ECONNREFUSED' || 
                               error.code === 'ENOTFOUND' || 
@@ -486,7 +484,6 @@ Please respond to: ${newPrompt}`;
         if (isNetworkError) {
           text = "I'm currently experiencing some technical difficulties connecting to my AI system. Your message is important to me, and I want to help. While I work to resolve this issue, please remember that if you're dealing with urgent mental health concerns, consider reaching out to a mental health professional or crisis hotline. Please try sending your message again in a moment.";
         } else {
-          // API-specific errors (rate limiting, safety filters, etc.)
           text = "I understand you're reaching out, and I appreciate you sharing with me. I'm experiencing some technical challenges right now, but I'm here to support you. If you're dealing with immediate mental health concerns, please don't hesitate to contact a mental health professional or crisis support service. Let's try continuing our conversation in a moment.";
         }
         
@@ -499,12 +496,10 @@ Please respond to: ${newPrompt}`;
         });
       }
 
-      // Clear AI processing indicator
       setAiProcessing(false);
 
-      // Remove the "thinking" message and add the actual AI response
       setMessages(prev => {
-        const withoutThinking = prev.slice(0, -1); // Remove the "thinking" message
+        const withoutThinking = prev.slice(0, -1);
         return [...withoutThinking, { text, user: false }];
       });
       await axios.post<ChatPostResponse>(PAGE_URL, {
@@ -543,10 +538,14 @@ Please respond to: ${newPrompt}`;
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <StatusBar barStyle="dark-content" backgroundColor={THEME.navbar} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+      <StatusBar 
+        barStyle={theme.statusBarStyle} 
+        backgroundColor={theme.navbar} 
+        translucent={false}
+      />
       <LinearGradient
-        colors={['#F8F8F8', '#F4F6F8', '#F7F7F7']}
+        colors={theme.gradient}
         style={{ flex: 1 }}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -558,28 +557,29 @@ Please respond to: ${newPrompt}`;
               showWelcome={!loading && !chatId && messages.length === 0}
             />
             
-            <FlatList            ListHeaderComponent={() => {
-              if (loading && chatId && messages.length === 0) {
-                return (
-                  <View style={{ 
-                    height: 300, 
-                    justifyContent: 'center', 
-                    alignItems: 'center' 
-                  }}>
-                    <ActivityIndicator size="large" color={THEME.primary} />
-                    <Text style={{ 
-                      marginTop: 16, 
-                      color: THEME.textSecondary,
-                      fontSize: 14,
-                      fontWeight: '400'
+            <FlatList            
+              ListHeaderComponent={() => {
+                if (loading && chatId && messages.length === 0) {
+                  return (
+                    <View style={{ 
+                      height: 300, 
+                      justifyContent: 'center', 
+                      alignItems: 'center' 
                     }}>
-                      Loading conversation...
-                    </Text>
-                  </View>
-                );
-              }
-              return null;
-            }}
+                      <ActivityIndicator size="large" color={theme.primary} />
+                      <Text style={{ 
+                        marginTop: 16, 
+                        color: theme.textSecondary,
+                        fontSize: 14,
+                        fontWeight: '400'
+                      }}>
+                        Loading conversation...
+                      </Text>
+                    </View>
+                  );
+                }
+                return null;
+              }}
               data={messages}
               ref={flatListRef}
               renderItem={({ item }) => <ChatBubble item={item} />}
