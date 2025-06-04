@@ -1,6 +1,14 @@
 const express = require("express");
 const router = express.Router();
-const { GoogleGenAI } = require("@google/genai");
+
+// Import Google GenAI with correct package
+let GoogleGenAI;
+try {
+  const genAI = require("@google/genai");
+  GoogleGenAI = genAI.GoogleGenAI;
+} catch (error) {
+  console.error("Failed to import @google/genai:", error);
+}
 
 const API_KEY = process.env.GEMINI_API_KEY;
 if (!API_KEY) {
@@ -8,7 +16,7 @@ if (!API_KEY) {
 }
 
 // Initialize the Google GenAI client
-const ai = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : null;
+const ai = API_KEY && GoogleGenAI ? new GoogleGenAI({ apiKey: API_KEY }) : null;
 
 // Store active chat sessions in memory (in production, use Redis or database)
 const chatSessions = new Map();
@@ -17,7 +25,8 @@ router.post("/generate-response", async (req, res) => {
   if (!ai) {
     return res.status(500).json({ 
       message: "AI service not available. Please check API configuration.",
-      error: "GEMINI_API_KEY not configured"
+      error: "GEMINI_API_KEY not configured or library not installed",
+      success: false
     });
   }
 
@@ -26,11 +35,12 @@ router.post("/generate-response", async (req, res) => {
 
     if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
       return res.status(400).json({ 
-        message: "Valid prompt is required." 
+        message: "Valid prompt is required.",
+        success: false
       });
     }
 
-    // Generate content using the new API
+    // Use the correct format for the new Google GenAI SDK
     const response = await ai.models.generateContent({
       model: 'gemini-2.0-flash-001',
       contents: prompt.trim(),
@@ -42,8 +52,8 @@ router.post("/generate-response", async (req, res) => {
       }
     });
 
-    // Extract the text response
-    const generatedText = response.text || "I apologize, but I couldn't generate a response. Please try again.";
+    // Extract the text response correctly
+    const generatedText = response?.text || "I apologize, but I couldn't generate a response. Please try again.";
 
     res.json({ 
       generatedText,
@@ -58,18 +68,21 @@ router.post("/generate-response", async (req, res) => {
     let errorMessage = "Failed to generate AI response.";
     let statusCode = 500;
 
-    if (error.message.includes("API_KEY")) {
+    if (error.message?.includes("API_KEY")) {
       errorMessage = "API key configuration error.";
       statusCode = 503;
-    } else if (error.message.includes("quota")) {
+    } else if (error.message?.includes("quota")) {
       errorMessage = "API quota exceeded. Please try again later.";
       statusCode = 429;
-    } else if (error.message.includes("safety")) {
+    } else if (error.message?.includes("safety")) {
       errorMessage = "Content filtered for safety reasons.";
       statusCode = 400;
-    } else if (error.message.includes("invalid")) {
+    } else if (error.message?.includes("invalid") || error.message?.includes("400")) {
       errorMessage = "Invalid request parameters.";
       statusCode = 400;
+    } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+      errorMessage = "Network connection error. Please check your internet connection.";
+      statusCode = 503;
     }
 
     res.status(statusCode).json({ 
@@ -137,6 +150,7 @@ router.get("/health", async (req, res) => {
     res.json({
       status: isReady ? "healthy" : "unhealthy",
       gemini_configured: isConfigured,
+      library_loaded: !!GoogleGenAI,
       active_sessions: chatSessions.size,
       success: true
     });

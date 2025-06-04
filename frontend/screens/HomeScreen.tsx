@@ -1,4 +1,4 @@
-import { View, Text, ActivityIndicator, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ListRenderItem, SafeAreaView, Image } from 'react-native'
+import { View, Text, ActivityIndicator, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ListRenderItem, SafeAreaView, Image, Dimensions } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import React, { useEffect, useState, useCallback, useRef, JSX } from 'react'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
@@ -15,13 +15,12 @@ import Constants from 'expo-constants'
 import { fontStyle } from '../assets/fonts/fontstyle'
 import { useTheme } from '../contexts/ThemeContext'
 
+const { width: screenWidth } = Dimensions.get('window');
+
 // Database server URL from .env
 const SERVER_URL: string = (Constants.expoConfig?.extra?.SERVER_URL as string) || '';
 const PAGE_URL: string = `${SERVER_URL}/users/chats`;
-
-// AI server URL - using the direct Gemini API
-const AI_API_KEY: string = (Constants.expoConfig?.extra?.API_KEY as string) || '';
-const GEMINI_URL: string = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent';
+const AI_URL: string = `${SERVER_URL}/api/ai/generate-response`;
 
 // Interfaces
 interface ChatMessage {
@@ -45,6 +44,13 @@ interface ChatPostResponse {
   message?: string;
 }
 
+interface AIResponse {
+  generatedText?: string;
+  success: boolean;
+  message?: string;
+  error?: string;
+}
+
 interface ChatBubbleProps {
   item: ChatMessage;
 }
@@ -57,98 +63,117 @@ type RootStackParamList = {
 const ChatBubble: React.FC<ChatBubbleProps> = ({ item }) => {
   const { theme, isDarkMode } = useTheme();
   
+  // Calculate dynamic width based on content length and screen size
+  const maxBubbleWidth = screenWidth * 0.8; // 80% of screen width
+  const minBubbleWidth = screenWidth * 0.3; // 30% of screen width
+  
   return (
     <Animated.View
-      style={[
-        {
-          marginVertical: 8,
-          paddingHorizontal: 16,
-          paddingVertical: 12, 
-          borderRadius: 18,
-          borderTopLeftRadius: item.user ? 18 : 4,
-          borderTopRightRadius: item.user ? 4 : 18,
-          maxWidth: '80%',
-          alignSelf: item.user ? 'flex-end' : 'flex-start',
-          backgroundColor: item.user ? 'transparent' : theme.bubble.bot,
-          shadowColor: theme.shadow.color,
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: theme.shadow.opacity,
-          shadowRadius: 2,
-          overflow: 'hidden',
-        },
-      ]}
+      style={{
+        marginVertical: 6,
+        paddingHorizontal: 16,
+        alignSelf: item.user ? 'flex-end' : 'flex-start',
+        maxWidth: maxBubbleWidth,
+        minWidth: minBubbleWidth,
+      }}
       entering={
         item.user
           ? SlideInRight.duration(350).springify().damping(12)
           : SlideInLeft.duration(350).springify().damping(12)
       }
     >
-      {item.user && (
-        <LinearGradient
-          colors={isDarkMode ? ['#0A84FF', '#1E90FF'] : ['#0A84FF', '#007AFF']}
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            top: 0,
-            bottom: 0,
-          }}
-        />
-      )}
-      <Markdown
+      <View
         style={{
-          body: {
-            color: item.user ? '#FFFFFF' : theme.text,
-            fontSize: 15.5,
-            lineHeight: 21,
-            fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
-            fontWeight: '400',
-          },
-          strong: {
-            fontWeight: '600',
-            color: item.user ? '#FFFFFF' : theme.text,
-          },
-          paragraph: {
-            marginVertical: 2,
-            color: item.user ? '#FFFFFF' : theme.text,
-          },
-          link: {
-            color: item.user ? '#E0F0FF' : theme.primary,
-            textDecorationLine: 'underline',
-          },
-          code_block: {
-            backgroundColor: item.user 
-              ? 'rgba(255,255,255,0.15)' 
-              : (isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.04)'),
-            padding: 10,
-            borderRadius: 8,
-            marginVertical: 6,
-            fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-          },
-          code_inline: {
-            backgroundColor: item.user 
-              ? 'rgba(255,255,255,0.15)' 
-              : (isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.04)'),
-            borderRadius: 4,
-            paddingHorizontal: 4,
-            paddingVertical: 1,
-            fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-            color: item.user ? '#FFFFFF' : theme.text,
-          },
-          bullet_list: {
-            marginVertical: 6,
-          },
-          ordered_list: {
-            marginVertical: 6,
-          },
-          list_item: {
-            marginVertical: 3,
-            color: item.user ? '#FFFFFF' : theme.text,
-          }
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          borderRadius: 20,
+          borderTopLeftRadius: item.user ? 20 : 6,
+          borderTopRightRadius: item.user ? 6 : 20,
+          backgroundColor: item.user ? 'transparent' : theme.bubble.bot,
+          shadowColor: theme.shadow.color,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: theme.shadow.opacity,
+          shadowRadius: 4,
+          elevation: 3,
+          overflow: 'hidden',
         }}
       >
-        {item.text}
-      </Markdown>
+        {item.user && (
+          <LinearGradient
+            colors={isDarkMode ? ['#0A84FF', '#1E90FF'] : ['#0A84FF', '#007AFF']}
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: 0,
+              bottom: 0,
+            }}
+          />
+        )}
+        <Markdown
+          style={{
+            body: {
+              color: item.user ? '#FFFFFF' : theme.text,
+              fontSize: 15.5,
+              lineHeight: 22,
+              fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+              fontWeight: '400',
+              marginVertical: 0,
+            },
+            strong: {
+              fontWeight: '600',
+              color: item.user ? '#FFFFFF' : theme.text,
+            },
+            paragraph: {
+              marginVertical: 2,
+              color: item.user ? '#FFFFFF' : theme.text,
+              flexWrap: 'wrap',
+            },
+            text: {
+              color: item.user ? '#FFFFFF' : theme.text,
+              flexWrap: 'wrap',
+            },
+            link: {
+              color: item.user ? '#E0F0FF' : theme.primary,
+              textDecorationLine: 'underline',
+            },
+            code_block: {
+              backgroundColor: item.user 
+                ? 'rgba(255,255,255,0.15)' 
+                : (isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'),
+              padding: 10,
+              borderRadius: 8,
+              marginVertical: 6,
+              fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+              fontSize: 14,
+            },
+            code_inline: {
+              backgroundColor: item.user 
+                ? 'rgba(255,255,255,0.15)' 
+                : (isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'),
+              borderRadius: 4,
+              paddingHorizontal: 6,
+              paddingVertical: 2,
+              fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+              color: item.user ? '#FFFFFF' : theme.text,
+              fontSize: 14,
+            },
+            bullet_list: {
+              marginVertical: 6,
+            },
+            ordered_list: {
+              marginVertical: 6,
+            },
+            list_item: {
+              marginVertical: 3,
+              color: item.user ? '#FFFFFF' : theme.text,
+              flexWrap: 'wrap',
+            }
+          }}
+        >
+          {item.text}
+        </Markdown>
+      </View>
     </Animated.View>
   );
 };
@@ -180,7 +205,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({ showWelcome }) => {
             shadowOpacity: theme.shadow.opacity,
             shadowRadius: 8,
             width: '86%',
-            elevation: 3, // For Android shadow
+            elevation: 3,
           }}
         >
           <Image
@@ -249,7 +274,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({ userInput, setUserInp
       <View style={{ 
         flexDirection: 'row', 
         justifyContent: 'center', 
-        alignItems: 'center', 
+        alignItems: 'flex-end', 
         padding: 12,
         paddingHorizontal: 16,
       }}>
@@ -284,35 +309,35 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({ userInput, setUserInp
               shadowRadius: 4,
               elevation: 2,
               minHeight: 50,
+              maxHeight: 120,
+              textAlignVertical: 'center',
             }}
             placeholderTextColor={theme.placeholder}
-            numberOfLines={1}
             multiline={true}
-            maxLength={500}
+            maxLength={2000}
           />
         </Animated.View>
 
         <Animated.View entering={FadeInDown.duration(500).springify()}>
           <TouchableOpacity 
             onPress={sendMessage} 
-            disabled={isDisabled} 
+            disabled={isDisabled || !userInput.trim()} 
             activeOpacity={0.7}
           >
             <View
               style={{
-                backgroundColor: isDisabled ? theme.textSecondary : theme.primary,
+                backgroundColor: (isDisabled || !userInput.trim()) ? theme.textSecondary : theme.primary,
                 height: 50,
                 width: 50,
                 borderRadius: 25,
                 justifyContent: 'center',
                 alignItems: 'center',
-                shadowColor: isDisabled ? theme.textSecondary : theme.primary,
+                shadowColor: (isDisabled || !userInput.trim()) ? theme.textSecondary : theme.primary,
                 shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: isDisabled ? 0.2 : 0.4,
+                shadowOpacity: (isDisabled || !userInput.trim()) ? 0.2 : 0.4,
                 shadowRadius: 3,
-                opacity: isDisabled ? 0.7 : 1,
-                transform: [{ rotate: '0deg' }],
-                elevation: isDisabled ? 1 : 3,
+                opacity: (isDisabled || !userInput.trim()) ? 0.6 : 1,
+                elevation: (isDisabled || !userInput.trim()) ? 1 : 3,
               }}
             >
               {(loading || aiProcessing) ? (
@@ -408,27 +433,31 @@ const HomeScreen = (): JSX.Element => {
   )
 
   useEffect(() => {
-    if (flatListRef.current) {
+    if (flatListRef.current && messages.length > 0) {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
-      }, 500);
+      }, 300);
     }
   }, [messages]);
 
   const sendMessage = async () => {
     if (!userInput.trim()) return
-    const newPrompt = userInput
+    const newPrompt = userInput.trim()
     setUserInput("")
     setLoading(true)
+    
     try {
       const userId = await AsyncStorage.getItem("id");
       setMessages(prev => [...prev, { text: newPrompt, user: true }]);
+      
+      // Save user message to database
       const userResponse = await axios.post<ChatPostResponse>(PAGE_URL, {
         userId,
         chatId,
         message: newPrompt,
         sender: "user"
       })
+      
       if (!chatId && userResponse.data.chatId) {
         setChatId(userResponse.data.chatId)
       }
@@ -451,49 +480,41 @@ const HomeScreen = (): JSX.Element => {
 Please respond to: ${newPrompt}`;
       }
 
-      let text: string;
-      
       setAiProcessing(true);
       
       const thinkingMessage = { text: "✨ Eira is thinking...", user: false };
-      setMessages(prev => [...prev, thinkingMessage]);      try {
-        // Call Gemini API directly
-        const aiApiResponse = await axios.post(
-          `${GEMINI_URL}?key=${AI_API_KEY}`,
+      setMessages(prev => [...prev, thinkingMessage]);
+      
+      try {
+        // Use backend AI route instead of calling Gemini API directly
+        const aiApiResponse = await axios.post<AIResponse>(
+          AI_URL,
           {
-            contents: [{
-              parts: [{
-                text: fullPrompt
-              }]
-            }],
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 1024,
-              topP: 0.9,
-              topK: 40
-            }
+            prompt: fullPrompt,
+            chatId: chatId || userResponse.data.chatId,
+            history: historyForBackend
           },
           {
-            timeout: 30000,
+            timeout: 45000,
             headers: {
               'Content-Type': 'application/json',
             }
           }
         );
         
-        if (!aiApiResponse.data.candidates || aiApiResponse.data.candidates.length === 0) {
-          throw new Error('AI service returned empty response');
+        if (!aiApiResponse.data.success || !aiApiResponse.data.generatedText) {
+          throw new Error(aiApiResponse.data.message || 'AI service returned empty response');
         }
         
-        // Extract text from Gemini response format
-        text = aiApiResponse.data.candidates[0].content.parts[0].text || 
-               "I apologize, but I'm having trouble processing your message right now. Please try again.";
-      } catch (aiError) {
-        console.warn("AI API error:", aiError);
+        var text = aiApiResponse.data.generatedText;
         
-        const error = aiError as AxiosError;
+      } catch (aiError) {
+        console.warn("Backend AI API error:", aiError);
+        
+        const error = aiError as AxiosError<AIResponse>;
         const isNetworkError = error.code === 'ECONNREFUSED' || 
                               error.code === 'ENOTFOUND' || 
+                              error.code === 'ETIMEDOUT' ||
                               (error.response?.status && error.response.status >= 500);
         
         if (isNetworkError) {
@@ -517,14 +538,28 @@ Please respond to: ${newPrompt}`;
         const withoutThinking = prev.slice(0, -1);
         return [...withoutThinking, { text, user: false }];
       });
+
+      // Save AI response to database
       await axios.post<ChatPostResponse>(PAGE_URL, {
         userId,
         chatId: chatId || userResponse.data.chatId,
         message: text,
         sender: "bot"
       })
+
     } catch (err) {
       console.error("General Error:", err);
+      setAiProcessing(false);
+      
+      // Remove thinking message if it exists
+      setMessages(prev => {
+        const lastMessage = prev[prev.length - 1];
+        if (lastMessage && lastMessage.text === "✨ Eira is thinking...") {
+          return prev.slice(0, -1);
+        }
+        return prev;
+      });
+      
       Toast.show({ 
         type: 'error', 
         text1: 'Message Not Sent', 
@@ -534,7 +569,6 @@ Please respond to: ${newPrompt}`;
       });
     } finally {
       setLoading(false);
-      setAiProcessing(false);
     }
   }
 
@@ -602,7 +636,7 @@ Please respond to: ${newPrompt}`;
               style={{ 
                 flex: 1, 
                 backgroundColor: 'transparent', 
-                paddingHorizontal: 14,
+                paddingHorizontal: 8,
                 paddingBottom: 10
               }}
               contentContainerStyle={{
@@ -614,6 +648,12 @@ Please respond to: ${newPrompt}`;
               initialNumToRender={15}
               maxToRenderPerBatch={10}
               windowSize={15}
+              removeClippedSubviews={true}
+              getItemLayout={(data, index) => ({
+                length: 80, // Approximate height
+                offset: 80 * index,
+                index,
+              })}
             />
 
             <MessageInputBar
