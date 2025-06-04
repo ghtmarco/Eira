@@ -86,12 +86,10 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ item, index }) => {
           overflow: 'hidden',
           alignSelf: item.user ? 'flex-end' : 'flex-start',
           maxWidth: '100%',
-          // Shadow for iOS
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.1,
           shadowRadius: 3,
-          // Elevation for Android
           elevation: 3,
         }}
       >
@@ -246,7 +244,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({ userInput, setUserInp
         backgroundColor: isDarkMode ? `${theme.card}F0` : `${theme.card}F5`, 
         borderTopWidth: 0.5, 
         borderTopColor: theme.border,
-        paddingBottom: Platform.OS === "ios" ? 20 : 16, // Increased paddingBottom
+        paddingBottom: Platform.OS === "ios" ? 20 : 16,
       }}
       keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 50}
     >
@@ -446,23 +444,20 @@ const HomeScreen = (): JSX.Element => {
       };
       setMessages(prev => [...prev, newMessage]);
       
-      let currentChatId = chatId; // Use a local variable for chatId during this flow
+      let currentChatId = chatId;
 
-      // Post user message
       try {
         const userResponse = await axios.post<ChatPostResponse>(PAGE_URL, {
           userId,
-          chatId: currentChatId, // Use currentChatId
+          chatId: currentChatId,
           message: newPrompt,
           sender: "user"
         })
         
         if (!currentChatId && userResponse.data.chatId) {
-          currentChatId = userResponse.data.chatId; // Update local variable
-          // DO NOT setChatId here yet to avoid premature re-fetch
+          currentChatId = userResponse.data.chatId;
         }
       } catch (dbError) {
-        // Handle error for user message post
         Toast.show({ 
           type: 'error', 
           text1: 'Database Error', 
@@ -473,7 +468,6 @@ const HomeScreen = (): JSX.Element => {
       }
 
       let fullPrompt = newPrompt;
-      // Check messages.length after adding the user's message
       if (messages.length === 0) { 
         fullPrompt = `You are Eira, a supportive AI companion for mental well-being. Your goal is to offer empathetic conversations and general guidance. You should:
 
@@ -551,11 +545,10 @@ Please respond to: ${newPrompt}`;
         return [...withoutThinking, aiMessage];
       });
 
-      // Post bot message
       try {
         await axios.post<ChatPostResponse>(PAGE_URL, {
           userId,
-          chatId: currentChatId, // Use the potentially new currentChatId
+          chatId: currentChatId,
           message: text,
           sender: "bot"
         })
@@ -569,7 +562,6 @@ Please respond to: ${newPrompt}`;
         });
       }
 
-      // ONLY setChatId AFTER both messages are processed and potentially saved
       if (currentChatId && currentChatId !== chatId) {
         setChatId(currentChatId);
       }
@@ -619,7 +611,6 @@ Please respond to: ${newPrompt}`;
       style={{ 
         flex: 1, 
         backgroundColor: theme.background,
-        // Subtle shadow for the entire screen content, affecting the top area
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
