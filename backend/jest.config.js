@@ -7,7 +7,7 @@ module.exports = {
     'middleware/**/*.js',
     '!**/node_modules/**',
   ],
-  coverageThresholds: {
+  coverageThreshold: {
     global: {
       branches: 80,
       functions: 80,

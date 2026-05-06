@@ -1,30 +1,57 @@
 const express = require("express")
 const bcrypt = require("bcryptjs")
+const jwt = require("jsonwebtoken")
 const { ObjectId } = require("mongodb")
 const connectToDB = require("../config/db")
+const authenticateToken = require("../middleware/auth")
 
 const router = express.Router()
 
-router.post("/chats", async (req, res) => {
+// Utility to get user collection
+const getUsersCollection = async () => {
+  const client = await connectToDB()
+  return client.db("soft_eng").collection("users")
+}
+
+// Utility to get chat collection
+const getChatsCollection = async () => {
+  const client = await connectToDB()
+  return client.db("soft_eng").collection("chats")
+}
+
+// PROTECTED: Create or update chat
+router.post("/chats", authenticateToken, async (req, res) => {
   try {
     const { userId, chatId, message, sender } = req.body
+    
     if (!userId || !message || !sender) {
       return res.status(400).json({ message: "All fields are required" })
     }
-    const client = await connectToDB()
-    const db = client.db("soft_eng")
-    const chatsCollection = db.collection("chats")
+
+    // Authorization check: User can only create/update chats for themselves
+    if (req.user.userId !== userId) {
+      return res.status(403).json({ message: "Unauthorized access to user data" })
+    }
+
+    const chatsCollection = await getChatsCollection()
 
     if (chatId) {
-      await chatsCollection.updateOne(
-        { _id: new ObjectId(chatId) },
+      const result = await chatsCollection.updateOne(
+        { _id: new ObjectId(chatId), userId: new ObjectId(userId) },
         { $push: { messages: { message, sender, timestamp: new Date() } } }
       )
+      
+      if (result.matchedCount === 0) {
+        return res.status(404).json({ message: "Chat not found" })
+      }
+      
       res.status(201).json({ message: "Chat updated successfully", chatId })
     } else {
       const newChat = {
         userId: new ObjectId(userId),
-        messages: [{ message, sender, timestamp: new Date() }]
+        messages: [{ message, sender, timestamp: new Date() }],
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
       const result = await chatsCollection.insertOne(newChat)
       res.status(201).json({ message: "Chat created successfully", chatId: result.insertedId })
@@ -34,13 +61,17 @@ router.post("/chats", async (req, res) => {
   }
 })
 
-router.get("/chats/user/:userId", async (req, res) => {
+// PROTECTED: Get all chats for a user
+router.get("/chats/user/:userId", authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params
-    const client = await connectToDB()
-    const db = client.db("soft_eng")
-    const chatsCollection = db.collection("chats")
 
+    // Authorization check
+    if (req.user.userId !== userId) {
+      return res.status(403).json({ message: "Unauthorized access" })
+    }
+
+    const chatsCollection = await getChatsCollection()
     const chatDocs = await chatsCollection.find({ userId: new ObjectId(userId) }).toArray()
 
     if (!chatDocs || chatDocs.length === 0) {
@@ -53,42 +84,53 @@ router.get("/chats/user/:userId", async (req, res) => {
   }
 })
 
-router.get("/chats/:chatId", async (req, res) => {
+// PROTECTED: Get specific chat detail
+router.get("/chats/:chatId", authenticateToken, async (req, res) => {
   try {
     const { chatId } = req.params
-    const client = await connectToDB()
-    const db = client.db("soft_eng")
-    const chatsCollection = db.collection("chats")
+    const chatsCollection = await getChatsCollection()
+    
     const chatDoc = await chatsCollection.findOne({ _id: new ObjectId(chatId) })
+    
     if (!chatDoc) {
       return res.status(404).json({ message: "Chat not found" })
     }
+
+    // Authorization check
+    if (chatDoc.userId.toString() !== req.user.userId) {
+      return res.status(403).json({ message: "Unauthorized access" })
+    }
+
     res.json(chatDoc)
   } catch (error) {
     res.status(500).json({ message: "Internal Server Error", error: error.message })
   }
 })
 
+// PUBLIC: Register
 router.post("/register", async (req, res) => {
   try {
-    const client = await connectToDB()
-    const db = client.db("soft_eng")
-    const usersCollection = db.collection("users")
-
     const { username, email, password } = req.body
 
     if (!username || !email || !password) {
       return res.status(400).json({ message: "All fields are required" })
     }
 
-    const existingUser = await usersCollection.findOne({ email })
+    const usersCollection = await getUsersCollection()
+
+    // FIX: Avoid regex for exact lookup to prevent ReDoS
+    const existingUser = await usersCollection.findOne({ email: email.toLowerCase() })
     if (existingUser) {
       return res.status(400).json({ message: "Email already registered" })
     }
 
     const hashedPassword = await bcrypt.hash(password, 10)
-
-    const newUser = { username, email, password: hashedPassword }
+    const newUser = { 
+      username, 
+      email: email.toLowerCase(), 
+      password: hashedPassword,
+      createdAt: new Date()
+    }
     const result = await usersCollection.insertOne(newUser)
 
     res.status(201).json({ message: "User created", userId: result.insertedId })
@@ -97,64 +139,92 @@ router.post("/register", async (req, res) => {
   }
 })
 
+// PUBLIC: Login
 router.post("/login", async (req, res) => {
   try {
-    const client = await connectToDB()
-    const db = client.db("soft_eng")
-    const usersCollection = db.collection("users")
-
     const { email, password } = req.body
     if (!email || !password) {
       return res.status(400).json({ message: "Email and password are required" })
     }
 
-    const user = await usersCollection.findOne({ email: { $regex: new RegExp(`^${email}$`, "i") } })
+    const usersCollection = await getUsersCollection()
+    
+    // FIX: Avoid regex for exact lookup to prevent ReDoS
+    const user = await usersCollection.findOne({ email: email.toLowerCase() })
 
     if (!user) {
-      return res.status(401).json({ message: "User Does Not Exist" })
+      return res.status(401).json({ message: "Invalid credentials" })
     }
 
     const isMatch = await bcrypt.compare(password, user.password)
     if (!isMatch) {
-      return res.status(401).json({ message: "Incorrect Password" })
+      return res.status(401).json({ message: "Invalid credentials" })
     }
 
-    res.json({ message: "Login successful", name: user.username, id: user._id })
+    // Generate JWT
+    const token = jwt.sign(
+      { userId: user._id.toString(), email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    )
+
+    res.json({ 
+      message: "Login successful", 
+      token,
+      name: user.username, 
+      id: user._id 
+    })
   } catch (error) {
-    res.status(500).json({ message: "Internal Server Error", error })
+    res.status(500).json({ message: "Internal Server Error", error: error.message })
   }
 })
 
+// PUBLIC: Change password (In real app, this should usually be protected or verified via email)
 router.post("/change-password", async (req, res) => {
   try {
-      const { email, newPassword } = req.body
-      const client = await connectToDB()
-      const db = client.db("soft_eng")
-      const usersCollection = db.collection("users")
-      const user = await usersCollection.findOne({ email: { $regex: new RegExp(`^${email}$`, "i") } })
-      if (!user) {
-          return res.status(404).json({ message: "User not found" })
-      }
+    const { email, newPassword } = req.body
+    if (!email || !newPassword) {
+      return res.status(400).json({ message: "Email and new password are required" })
+    }
 
-      const hashedPassword = await bcrypt.hash(newPassword, 10)
+    const usersCollection = await getUsersCollection()
+    
+    // FIX: Avoid regex for exact lookup to prevent ReDoS
+    const user = await usersCollection.findOne({ email: email.toLowerCase() })
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" })
+    }
 
-      await usersCollection.updateOne(
-        { email },
-        { $set: { password: hashedPassword } }
-      )
+    const hashedPassword = await bcrypt.hash(newPassword, 10)
 
-      res.status(200).json({ message: "Password updated successfully" })
+    await usersCollection.updateOne(
+      { email: email.toLowerCase() },
+      { $set: { password: hashedPassword } }
+    )
+
+    res.status(200).json({ message: "Password updated successfully" })
   } catch (error) {
-      res.status(500).json({ message: "Server error", error: error.message })
+    res.status(500).json({ message: "Server error", error: error.message })
   }
 })
 
-router.delete("/chats/:chatId", async (req, res) => {
+// PROTECTED: Delete chat
+router.delete("/chats/:chatId", authenticateToken, async (req, res) => {
   try {
     const { chatId } = req.params
-    const client = await connectToDB()
-    const db = client.db("soft_eng")
-    const chatsCollection = db.collection("chats")
+    const chatsCollection = await getChatsCollection()
+    
+    // Authorization check: find the chat first to verify ownership
+    const chatDoc = await chatsCollection.findOne({ _id: new ObjectId(chatId) })
+    
+    if (!chatDoc) {
+      return res.status(404).json({ message: "Chat not found" })
+    }
+
+    if (chatDoc.userId.toString() !== req.user.userId) {
+      return res.status(403).json({ message: "Unauthorized access" })
+    }
     
     const result = await chatsCollection.deleteOne({ _id: new ObjectId(chatId) })
     
@@ -169,3 +239,4 @@ router.delete("/chats/:chatId", async (req, res) => {
 })
 
 module.exports = router
+

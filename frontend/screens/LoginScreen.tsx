@@ -65,7 +65,7 @@ export default function LoginScreen(): JSX.Element {
 
     useEffect(() => {
         const checkLoginStatus = async () => {
-            const token = await AsyncStorage.getItem('token');
+            const token = await AsyncStorage.getItem('userToken');
 
             if (token) {
                 navigation.replace("Main");
@@ -82,19 +82,38 @@ export default function LoginScreen(): JSX.Element {
     const [showPass, setShowPass] = useState<boolean>(true);
 
     const handleLogin = async (values: LoginFormValues, { setSubmitting }: FormikHelpers<LoginFormValues>) => {
-        const { email, password } = values;
-        const result = await loginUser(email, password);
-    
-        if (result.token && result.name && result.id) {
-            await AsyncStorage.multiSet([
-                ['username', result.name],
-                ['email', email],
-                ['id', result.id],
-                ['token', result.token]
-            ]);
-    
-            Toast.show({text1: "Login Successful", text2: `Welcome, ${result.name}`, type:"success", position: 'bottom'});
-            navigation.replace("Main");
+        try {
+            const { email, password } = values;
+            const response = await axios.post(`${PAGE_URL}/login`, {
+                email: email.toLowerCase(),
+                password,
+            });
+
+            if (response.status === 200) {
+                const { id, name, token } = response.data;
+                await AsyncStorage.setItem("id", id);
+                await AsyncStorage.setItem("name", name);
+                await AsyncStorage.setItem("userToken", token);
+                
+                Toast.show({
+                    type: 'success',
+                    text1: 'Welcome back!',
+                    text2: `Logged in as ${name}`,
+                    position: 'bottom'
+                });
+                
+                navigation.replace("Main");
+            }
+        } catch (error) {
+            const axiosError = error as AxiosError<{ message: string }>;
+            Toast.show({
+                type: 'error',
+                text1: 'Login Failed',
+                text2: axiosError.response?.data?.message || 'Invalid credentials',
+                position: 'bottom'
+            });
+        } finally {
+            setSubmitting(false);
         }
     };
 

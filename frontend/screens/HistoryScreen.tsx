@@ -41,7 +41,16 @@ const HistoryScreen = (): JSX.Element => {
     setLoading(true);
     try {
       const userId = await AsyncStorage.getItem("id");
-      const response = await axios.get<ChatHistoryItem[] | ChatHistoryItem>(`${PAGE_URL}/${userId}`);
+      const token = await AsyncStorage.getItem("userToken");
+      
+      const response = await axios.get<ChatHistoryItem[] | ChatHistoryItem>(
+        `${PAGE_URL}/${userId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
       const data = Array.isArray(response.data) ? response.data : (response.data ? [response.data] : []);
       setChatHistory(data);
     } catch (error) {
@@ -50,7 +59,7 @@ const HistoryScreen = (): JSX.Element => {
       Toast.show({
         type: 'error',
         text1: 'Couldn\'t Load History',
-        text2: 'Please check your connection and try again.',
+        text2: 'Session expired or connection issue.',
         position: 'bottom',
         visibilityTime: 3000,
       });

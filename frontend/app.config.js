@@ -5,6 +5,9 @@ export default {
         name: "Project",
         slug: "project",
         version: "1.0.0",
+        plugins: [
+            "expo-font"
+        ],
         extra:{
             API_KEY: process.env.API_KEY,
             SERVER_URL: process.env.SERVER_URL,

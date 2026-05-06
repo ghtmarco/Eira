@@ -117,17 +117,14 @@ describe('POST /api/users/login', () => {
 
   it('returns 200 with token, name and id on success', async () => {
     mockFindOne.mockResolvedValue({
-      _id: VALID_USER_ID,
+      _id: new (require('mongodb').ObjectId)(VALID_USER_ID),
       username: 'TestUser',
       email: 'test@eira.com',
       password: hashedPassword,
     });
 
-    // We need bcrypt.compare to return true – mock it
-    jest.mock('bcryptjs', () => ({
-      hash: jest.fn().mockResolvedValue('hashed'),
-      compare: jest.fn().mockResolvedValue(true),
-    }));
+    // Mock bcrypt.compare to return true
+    require('bcryptjs').compare = jest.fn().mockResolvedValue(true);
 
     const res = await request(app)
       .post('/api/users/login')
@@ -332,6 +329,7 @@ describe('DELETE /api/users/chats/:chatId (protected)', () => {
   });
 
   it('deletes the chat and returns 200', async () => {
+    mockFindOne.mockResolvedValue({ _id: VALID_CHAT_ID, userId: VALID_USER_ID });
     mockDeleteOne.mockResolvedValue({ deletedCount: 1 });
 
     const res = await request(app)
