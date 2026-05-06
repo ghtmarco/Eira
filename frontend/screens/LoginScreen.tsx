@@ -1,4 +1,4 @@
-import { View, Text, Image, TextInput, TouchableOpacity, ImageSourcePropType, KeyboardAvoidingView, Platform } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native'
 import { JSX, useEffect, useState } from 'react'
 import { StatusBar } from 'expo-status-bar'
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated'
@@ -16,23 +16,6 @@ import { useTheme } from '../contexts/ThemeContext'
 const SERVER_URL: string = (Constants.expoConfig?.extra?.SERVER_URL as string) || '';
 const PAGE_URL: string = `${SERVER_URL}/users`;
 
-interface LoginApiResponse {
-    message?: string;
-    token?: string;
-    name?: string;
-    id?: string;
-}
-
-export const loginUser = async (email: string, password: string): Promise<LoginApiResponse> => {
-    try {
-      const response = await axios.post<LoginApiResponse>(`${PAGE_URL}/login`, { email, password });
-      return response.data;
-    } catch (error) {
-        Toast.show({type: "error", text1: "Login Failed", text2: "An error occurred", position: 'bottom'});
-        return { message: "An error occurred" };
-    }
-};
-
 interface LoginFormValues {
     email: string;
     password: string;
@@ -42,15 +25,6 @@ const validationSchema = Yup.object().shape({
     email: Yup.string().required("Email is required.").email().label("Email"),
     password: Yup.string().required("Password is required.").min(4).label("Password"),
 });
-
-interface ImageSize {
-    width: number;
-    height: number;
-}
-
-const getImageSize = (imageSource: ImageSourcePropType): ImageSize => {
-    return { width: 200, height: 200 };
-};
 
 type RootStackParamList = {
     Login: undefined;
@@ -74,10 +48,6 @@ export default function LoginScreen(): JSX.Element {
 
         checkLoginStatus();
     }, [navigation]);
-
-    const [imageSizes, setImageSizes] = useState<{ logo: ImageSize }>({
-        logo: { width: 0, height: 0 },
-    });
 
     const [showPass, setShowPass] = useState<boolean>(true);
 
@@ -117,14 +87,6 @@ export default function LoginScreen(): JSX.Element {
         }
     };
 
-    useEffect(() => {
-        const logoSource = require('../assets/images/Logo.png')
-
-        setImageSizes({
-            logo: getImageSize(logoSource),
-        })
-    }, [])
-
     function onEyePress() {
         setShowPass(!showPass)
     }
@@ -149,7 +111,7 @@ export default function LoginScreen(): JSX.Element {
             >
                 <Animated.Image
                 entering={FadeInUp.delay(200).duration(1000).springify()}
-                style={{ width: imageSizes.logo.width, height: imageSizes.logo.height }}
+                style={{ width: 200, height: 200 }}
                 source={require('../assets/images/Logo.png')}
                 />
             </View>

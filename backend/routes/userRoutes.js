@@ -179,27 +179,29 @@ router.post("/login", async (req, res) => {
   }
 })
 
-// PUBLIC: Change password (In real app, this should usually be protected or verified via email)
-router.post("/change-password", async (req, res) => {
+// PROTECTED: Change password — requires valid JWT and current password verification
+router.post("/change-password", authenticateToken, async (req, res) => {
   try {
-    const { email, newPassword } = req.body
-    if (!email || !newPassword) {
-      return res.status(400).json({ message: "Email and new password are required" })
+    const { currentPassword, newPassword } = req.body
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "currentPassword and newPassword are required" })
     }
 
     const usersCollection = await getUsersCollection()
-    
-    // FIX: Avoid regex for exact lookup to prevent ReDoS
-    const user = await usersCollection.findOne({ email: email.toLowerCase() })
-    
+    const user = await usersCollection.findOne({ _id: new ObjectId(req.user.userId) })
+
     if (!user) {
       return res.status(404).json({ message: "User not found" })
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10)
+    const isMatch = await bcrypt.compare(currentPassword, user.password)
+    if (!isMatch) {
+      return res.status(401).json({ message: "Current password is incorrect" })
+    }
 
+    const hashedPassword = await bcrypt.hash(newPassword, 10)
     await usersCollection.updateOne(
-      { email: email.toLowerCase() },
+      { _id: new ObjectId(req.user.userId) },
       { $set: { password: hashedPassword } }
     )
 

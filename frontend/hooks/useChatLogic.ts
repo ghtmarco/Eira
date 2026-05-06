@@ -108,7 +108,7 @@ export const useChatLogic = ({ route, navigation }: UseChatLogicProps) => {
         const fetchedMessages: ChatMessage[] = chatDoc.messages.map((msg: ApiChatMessage, index: number) => ({
           text: msg.message,
           user: msg.sender === "user",
-          timestamp: Date.now() + index,
+          timestamp: msg.timestamp ? new Date(msg.timestamp).getTime() : index,
         }));
         setMessages(fetchedMessages);
       }

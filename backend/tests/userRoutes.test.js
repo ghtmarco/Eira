@@ -169,16 +169,66 @@ describe('POST /api/users/login', () => {
 });
 
 // ═════════════════════════════════════════════
-// POST /api/users/change-password
+// POST /api/users/change-password — PROTECTED
 // ═════════════════════════════════════════════
-describe('POST /api/users/change-password', () => {
-  it('updates password and returns 200', async () => {
-    mockFindOne.mockResolvedValue({ email: 'test@eira.com', password: 'old' });
+describe('POST /api/users/change-password (protected)', () => {
+  const hashedPassword = '$2b$10$examplehashedpasswordfortesting123';
+
+  it('returns 401 when no token is provided', async () => {
+    const res = await request(app)
+      .post('/api/users/change-password')
+      .send({ currentPassword: 'Secret123', newPassword: 'NewSecret123' });
+
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 403 when an invalid token is provided', async () => {
+    const res = await request(app)
+      .post('/api/users/change-password')
+      .set('Authorization', 'Bearer badtoken')
+      .send({ currentPassword: 'Secret123', newPassword: 'NewSecret123' });
+
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 400 if currentPassword or newPassword is missing', async () => {
+    const res = await request(app)
+      .post('/api/users/change-password')
+      .set(authHeader(makeToken()))
+      .send({ newPassword: 'NewSecret123' }); // missing currentPassword
+
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 401 if currentPassword is wrong', async () => {
+    mockFindOne.mockResolvedValue({
+      _id: new (require('mongodb').ObjectId)(VALID_USER_ID),
+      email: 'test@eira.com',
+      password: hashedPassword,
+    });
+    require('bcryptjs').compare = jest.fn().mockResolvedValue(false);
+
+    const res = await request(app)
+      .post('/api/users/change-password')
+      .set(authHeader(makeToken()))
+      .send({ currentPassword: 'WrongPassword', newPassword: 'NewSecret123' });
+
+    expect(res.status).toBe(401);
+  });
+
+  it('updates password and returns 200 when token and currentPassword are valid', async () => {
+    mockFindOne.mockResolvedValue({
+      _id: new (require('mongodb').ObjectId)(VALID_USER_ID),
+      email: 'test@eira.com',
+      password: hashedPassword,
+    });
+    require('bcryptjs').compare = jest.fn().mockResolvedValue(true);
     mockUpdateOne.mockResolvedValue({ matchedCount: 1 });
 
     const res = await request(app)
       .post('/api/users/change-password')
-      .send({ email: 'test@eira.com', newPassword: 'NewSecret123' });
+      .set(authHeader(makeToken()))
+      .send({ currentPassword: 'Secret123', newPassword: 'NewSecret123' });
 
     expect(res.status).toBe(200);
     expect(res.body.message).toMatch(/updated/i);
@@ -189,7 +239,8 @@ describe('POST /api/users/change-password', () => {
 
     const res = await request(app)
       .post('/api/users/change-password')
-      .send({ email: 'ghost@eira.com', newPassword: 'NewSecret123' });
+      .set(authHeader(makeToken()))
+      .send({ currentPassword: 'Secret123', newPassword: 'NewSecret123' });
 
     expect(res.status).toBe(404);
   });

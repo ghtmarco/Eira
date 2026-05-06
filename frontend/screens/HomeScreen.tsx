@@ -65,6 +65,10 @@ const HomeScreen = (): JSX.Element => {
     scrollToBottom();
   }, [scrollToBottom]);
 
+  const ListHeader = useCallback(() =>
+    messages.length === 0 ? <ChatHeader showWelcome={true} /> : null,
+  [messages.length]);
+
   const renderChatBubble = useCallback(({ item, index }: { item: ChatMessage; index: number }) => (
     <ChatBubble item={item} index={index} />
   ), []);
@@ -98,11 +102,7 @@ const HomeScreen = (): JSX.Element => {
         <GestureHandlerRootView style={{ flex: 1 }}>
           <View style={{ flex: 1 }}>
             <FlatList
-              ListHeaderComponent={
-                useCallback(() => (
-                  messages.length === 0 ? <ChatHeader showWelcome={true} /> : null
-                ), [messages.length])
-              }
+              ListHeaderComponent={ListHeader}
               data={messages}
               ref={flatListRef}
               renderItem={renderChatBubble}
