@@ -23,69 +23,43 @@ const client = new MongoClient(uri, {
   retryReads: true,
 })
 
-let isConnected = false
+// Promise singleton — concurrent callers share the same connection attempt
+let connectionPromise = null
 
 async function connectToDB() {
-  try {
-    if (isConnected) {
-      return client
-    }
+  if (!connectionPromise) {
+    connectionPromise = (async () => {
+      console.log('🔄 Connecting to MongoDB...')
+      const startTime = Date.now()
+      await client.connect()
+      await client.db('admin').command({ ping: 1 })
+      console.log(`✅ MongoDB connected successfully in ${Date.now() - startTime}ms`)
 
-    console.log('🔄 Connecting to MongoDB...')
-    const startTime = Date.now()
-
-    await client.connect()
-    await client.db('admin').command({ ping: 1 })
-
-    const connectionTime = Date.now() - startTime
-    console.log(`✅ MongoDB connected successfully in ${connectionTime}ms`)
-
-    isConnected = true
-
-    client.on('connectionPoolCreated', (event) => {
-      console.log('📊 MongoDB connection pool created')
+      // Reset so a reconnect is attempted after pool is cleared
+      client.on('connectionPoolCleared', () => {
+        console.log('🧹 MongoDB connection pool cleared')
+        connectionPromise = null
+      })
+    })().catch((err) => {
+      connectionPromise = null
+      throw err
     })
-
-    client.on('connectionCreated', (event) => {
-      console.log('🔗 New MongoDB connection created')
-    })
-
-    client.on('connectionReady', (event) => {
-      console.log('✅ MongoDB connection ready')
-    })
-
-    client.on('connectionClosed', (event) => {
-      console.log('🔌 MongoDB connection closed')
-    })
-
-    client.on('connectionPoolCleared', (event) => {
-      console.log('🧹 MongoDB connection pool cleared')
-      isConnected = false
-    })
-
-    return client
-
-  } catch (error) {
-    console.error('❌ MongoDB connection failed:', error.message)
-    isConnected = false
-    process.exit(1)
   }
+
+  await connectionPromise
+  return client
 }
 
 const gracefulShutdown = async () => {
   try {
-    if (isConnected) {
-      console.log('🔄 Closing MongoDB connections...')
-      await client.close()
-      isConnected = false
-      console.log('✅ MongoDB connections closed successfully')
-    }
+    console.log('🔄 Closing MongoDB connections...')
+    await client.close()
+    connectionPromise = null
+    console.log('✅ MongoDB connections closed successfully')
   } catch (error) {
     console.error('❌ Error closing MongoDB connections:', error.message)
   }
 }
 
-process.on('SIGINT', gracefulShutdown)
-process.on('SIGTERM', gracefulShutdown)
-
 module.exports = connectToDB
+module.exports.gracefulShutdown = gracefulShutdown

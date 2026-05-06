@@ -5,30 +5,23 @@ const helmet = require("helmet")
 const morgan = require("morgan")
 const rateLimit = require("express-rate-limit")
 const connectToDB = require("./config/db")
+const { gracefulShutdown: closeDB } = require("./config/db")
 const userRoutes = require("./routes/userRoutes")
 
 const app = express()
 const PORT = process.env.PORT || 5000
 
-// 1. Request Timer Middleware (Must be first)
-const requestTimer = (req, res, next) => {
-  req.startTime = Date.now()
-  res.on('finish', () => {
-    const duration = Date.now() - req.startTime
-    const color = duration > 1000 ? '\x1b[31m' : duration > 500 ? '\x1b[33m' : '\x1b[32m'
-    console.log(`${color}${req.method} ${req.originalUrl} - ${res.statusCode} - ${duration}ms\x1b[0m`)
-  })
-  next()
-}
-app.use(requestTimer)
-
-// 2. Security Middleware
+// 1. Security Middleware
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }))
 
+if (process.env.NODE_ENV === 'production' && !process.env.ALLOWED_ORIGINS) {
+  console.error('⚠️  ALLOWED_ORIGINS is not set — CORS will block all cross-origin requests in production')
+}
+
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : '*',
+  origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : (process.env.NODE_ENV === 'production' ? false : '*'),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -48,8 +41,8 @@ app.use('/api/', limiter)
 
 // 4. Standard Middleware
 app.use(morgan('dev'))
-app.use(express.json({ limit: '10mb' }))
-app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+app.use(express.json({ limit: '100kb' }))
+app.use(express.urlencoded({ extended: true, limit: '100kb' }))
 
 // 5. Health Check
 app.get('/health', (req, res) => {
@@ -94,10 +87,11 @@ const startServer = async () => {
       console.log(`✅ Server running on http://0.0.0.0:${PORT}`)
     })
 
-    const gracefulShutdown = (signal) => {
-      console.log(`\n🔄 Received ${signal}. Closing HTTP server...`)
-      server.close(() => {
-        console.log('✅ HTTP server closed')
+    const gracefulShutdown = async (signal) => {
+      console.log(`\n🔄 Received ${signal}. Shutting down...`)
+      server.close(async () => {
+        await closeDB()
+        console.log('✅ Server and DB closed')
         process.exit(0)
       })
     }

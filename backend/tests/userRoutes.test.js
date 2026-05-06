@@ -279,7 +279,8 @@ describe('POST /api/users/chats (protected)', () => {
     expect(res.body).toHaveProperty('chatId');
   });
 
-  it('updates an existing chat when chatId is provided', async () => {
+  it('updates an existing chat when chatId is provided and returns 200', async () => {
+    mockFindOne.mockResolvedValue({ _id: VALID_CHAT_ID, userId: { toString: () => VALID_USER_ID } });
     mockUpdateOne.mockResolvedValue({ matchedCount: 1 });
 
     const res = await request(app)
@@ -287,7 +288,7 @@ describe('POST /api/users/chats (protected)', () => {
       .set(authHeader(makeToken()))
       .send({ userId: VALID_USER_ID, chatId: VALID_CHAT_ID, message: 'Follow up', sender: 'bot' });
 
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(200);
     expect(res.body.chatId).toBe(VALID_CHAT_ID);
   });
 
@@ -380,7 +381,7 @@ describe('DELETE /api/users/chats/:chatId (protected)', () => {
   });
 
   it('deletes the chat and returns 200', async () => {
-    mockFindOne.mockResolvedValue({ _id: VALID_CHAT_ID, userId: VALID_USER_ID });
+    mockFindOne.mockResolvedValue({ _id: VALID_CHAT_ID, userId: { toString: () => VALID_USER_ID } });
     mockDeleteOne.mockResolvedValue({ deletedCount: 1 });
 
     const res = await request(app)
@@ -391,13 +392,124 @@ describe('DELETE /api/users/chats/:chatId (protected)', () => {
     expect(res.body.message).toMatch(/deleted/i);
   });
 
+  it('returns 403 when user tries to delete another user\'s chat', async () => {
+    mockFindOne.mockResolvedValue({ _id: VALID_CHAT_ID, userId: { toString: () => 'different-user-id' } });
+
+    const res = await request(app)
+      .delete(`/api/users/chats/${VALID_CHAT_ID}`)
+      .set(authHeader(makeToken()));
+
+    expect(res.status).toBe(403);
+  });
+
   it('returns 404 if chat is not found', async () => {
-    mockDeleteOne.mockResolvedValue({ deletedCount: 0 });
+    mockFindOne.mockResolvedValue(null);
 
     const res = await request(app)
       .delete(`/api/users/chats/${VALID_CHAT_ID}`)
       .set(authHeader(makeToken()));
 
     expect(res.status).toBe(404);
+  });
+});
+
+// ═════════════════════════════════════════════
+// Security — JWT algorithm confusion
+// ═════════════════════════════════════════════
+describe('Security — JWT algorithm pinning', () => {
+  it('returns 403 for a token signed with alg:none', async () => {
+    const header = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url');
+    const body   = Buffer.from(JSON.stringify({ userId: VALID_USER_ID, email: 'test@eira.com' })).toString('base64url');
+    const noneToken = `${header}.${body}.`;
+
+    const res = await request(app)
+      .post('/api/users/chats')
+      .set('Authorization', `Bearer ${noneToken}`)
+      .send({ userId: VALID_USER_ID, message: 'Hello', sender: 'user' });
+
+    expect(res.status).toBe(403);
+  });
+});
+
+// ═════════════════════════════════════════════
+// Security — ObjectId validation
+// ═════════════════════════════════════════════
+describe('Security — ObjectId param validation', () => {
+  it('returns 400 for invalid chatId in GET /chats/:chatId', async () => {
+    const res = await request(app)
+      .get('/api/users/chats/not-a-valid-id')
+      .set(authHeader(makeToken()));
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 for invalid chatId in DELETE /chats/:chatId', async () => {
+    const res = await request(app)
+      .delete('/api/users/chats/not-a-valid-id')
+      .set(authHeader(makeToken()));
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 for invalid userId in GET /chats/user/:userId', async () => {
+    const res = await request(app)
+      .get('/api/users/chats/user/not-a-valid-id')
+      .set(authHeader(makeToken('not-a-valid-id')));
+    expect(res.status).toBe(400);
+  });
+});
+
+// ═════════════════════════════════════════════
+// Security — No internal error leakage
+// ═════════════════════════════════════════════
+describe('Security — Internal error details not exposed', () => {
+  it('does not expose error.message in 500 responses', async () => {
+    connectToDB.mockRejectedValueOnce(new Error('super-secret-internal-details'));
+
+    const res = await request(app)
+      .post('/api/users/register')
+      .send({ username: 'Test', email: 'test@eira.com', password: 'pass' });
+
+    expect(res.status).toBe(500);
+    expect(JSON.stringify(res.body)).not.toContain('super-secret-internal-details');
+  });
+});
+
+// ═════════════════════════════════════════════
+// POST /api/users/chat/ai — PROTECTED AI proxy
+// ═════════════════════════════════════════════
+describe('POST /api/users/chat/ai (protected AI proxy)', () => {
+  it('returns 401 without a token', async () => {
+    const res = await request(app)
+      .post('/api/users/chat/ai')
+      .send({ message: 'Hello', history: [] });
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 403 with an invalid token', async () => {
+    const res = await request(app)
+      .post('/api/users/chat/ai')
+      .set('Authorization', 'Bearer badtoken')
+      .send({ message: 'Hello', history: [] });
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 400 if message is missing', async () => {
+    const res = await request(app)
+      .post('/api/users/chat/ai')
+      .set(authHeader(makeToken()))
+      .send({ history: [] });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 503 if GEMINI_API_KEY is not configured', async () => {
+    const saved = process.env.GEMINI_API_KEY;
+    delete process.env.GEMINI_API_KEY;
+
+    const res = await request(app)
+      .post('/api/users/chat/ai')
+      .set(authHeader(makeToken()))
+      .send({ message: 'Hello', history: [] });
+
+    process.env.GEMINI_API_KEY = saved;
+    expect(res.status).toBe(503);
   });
 });
