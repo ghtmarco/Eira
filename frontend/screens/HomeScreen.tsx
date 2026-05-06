@@ -62,8 +62,8 @@ const HomeScreen = (): JSX.Element => {
   );
 
   useEffect(() => {
-    scrollToBottom();
-  }, [scrollToBottom]);
+    if (messages.length > 0) scrollToBottom();
+  }, [messages.length, scrollToBottom]);
 
   const ListHeader = useCallback(() =>
     messages.length === 0 ? <ChatHeader showWelcome={true} /> : null,

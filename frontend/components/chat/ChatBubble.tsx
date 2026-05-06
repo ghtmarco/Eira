@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { View, Platform } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -21,7 +21,7 @@ const ChatBubble = memo<ChatBubbleProps>(({ item, index }) => {
 
   const maxWidth = screenWidth * 0.85;
 
-  const markdownStyles = {
+  const markdownStyles = useMemo(() => ({
     body: {
       color: item.user ? '#FFFFFF' : theme.text,
       fontSize: 15.5,
@@ -80,7 +80,7 @@ const ChatBubble = memo<ChatBubbleProps>(({ item, index }) => {
       color: item.user ? '#FFFFFF' : theme.text,
       flexWrap: 'wrap' as const,
     }
-  };
+  }), [item.user, theme, isDarkMode]);
 
   return (
     <View

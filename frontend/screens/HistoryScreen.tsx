@@ -113,7 +113,7 @@ const HistoryScreen = (): JSX.Element => {
     
     return (
       <Animated.View
-        entering={FadeInDown.duration(400).delay(index * 100).springify()}
+        entering={FadeInDown.duration(400).delay(Math.min(index * 100, 400)).springify()}
       >
         <View style={[styles.chatCard, { backgroundColor: theme.card, shadowColor: theme.shadow.color }]}>
           <View style={styles.chatHeader}>

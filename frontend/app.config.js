@@ -9,9 +9,12 @@ export default {
             "expo-font"
         ],
         extra:{
-            API_KEY: process.env.API_KEY,
             SERVER_URL: process.env.SERVER_URL,
             PHONE_NUMBER: process.env.PHONE_NUMBER,
-        }
+        },
+        android: {
+            package: "com.asphyxia.eira"
+        },
+        newArchEnabled: false
     }
 }
