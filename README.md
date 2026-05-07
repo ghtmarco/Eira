@@ -1,10 +1,12 @@
 <div align="center">
   <img src="frontend/assets/images/Logo.png" alt="Eira Logo" width="120" />
   <h1>Eira — Your Mental Well-being Companion</h1>
-  <p><em>An intuitive mobile application dedicated to mental wellness, powered by Google's Gemini AI.</em></p>
+  <p><em>An intuitive mental wellness mobile app powered by Google's Gemini AI.</em></p>
 </div>
 
-Eira is designed to provide secure, context-aware conversational support. We built it with a modern React Native (Expo) frontend and a hardened Express.js backend backed by MongoDB.
+*Note: This application was built as a collaborative group project for the **COMP6100001 - LEC** course at **Binus University**.*
+
+Eira is built to provide a safe space for mental wellness through context-aware conversational support. We developed it using a modern React Native (Expo) frontend, supported by a robust Express.js backend and MongoDB for secure data handling.
 
 ## 📱 Screenshots
 
