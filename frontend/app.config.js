@@ -14,7 +14,6 @@ export default {
         },
         android: {
             package: "com.asphyxia.eira"
-        },
-        newArchEnabled: false
+        }
     }
 }

@@ -1,1 +1,8 @@
 /.agent
+/.claude
+# Loose screenshot files in root (kept in docs/screenshots/)
+/screen*.png
+/nokb.png
+/reopen.png
+/ui*.xml
+/ui_*.xml

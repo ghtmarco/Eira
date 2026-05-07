@@ -56,13 +56,15 @@ const HistoryScreen = (): JSX.Element => {
     } catch (error) {
       const axiosError = error as AxiosError;
       setChatHistory([]);
-      Toast.show({
-        type: 'error',
-        text1: 'Couldn\'t Load History',
-        text2: 'Session expired or connection issue.',
-        position: 'bottom',
-        visibilityTime: 3000,
-      });
+      if (axiosError.response?.status !== 404) {
+        Toast.show({
+          type: 'error',
+          text1: 'Couldn\'t Load History',
+          text2: 'Session expired or connection issue.',
+          position: 'bottom',
+          visibilityTime: 3000,
+        });
+      }
     } finally {
       setLoading(false);
     }
