@@ -8,10 +8,6 @@ A mobile app for mental wellness support, powered by Google Gemini AI. Built wit
 |-------|------|--------|---------|
 | ![Login](docs/screenshots/01-login.png) | ![Chat](docs/screenshots/02-chat-home.png) | ![Drawer](docs/screenshots/03-drawer.png) | ![History](docs/screenshots/04-history.png) |
 
-| Chat with message |
-|-------------------|
-| ![Message](docs/screenshots/05-chat-message.png) |
-
 ## Features
 
 - **Context-aware conversations** — Eira remembers chat history within a session
