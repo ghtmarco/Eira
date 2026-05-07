@@ -1,8 +1,11 @@
 /.agent
 /.claude
-# Loose screenshot files in root (kept in docs/screenshots/)
-/screen*.png
-/nokb.png
-/reopen.png
-/ui*.xml
-/ui_*.xml
+node_modules/
+.env
+.env.*
+!.env.example
+.DS_Store
+coverage/
+dist/
+build/
+*.log
